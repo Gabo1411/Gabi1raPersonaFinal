@@ -4,62 +4,79 @@ using TMPro;
 
 public class GameManager : MonoBehaviour
 {
-    [Header("Configuración")]
-    public float survivalTime = 60f; // Tiempo meta
+    [Header("Configuración de Puntuación")]
+    public int targetScore = 100;
+    private int currentScore = 0;
 
     [Header("UI References")]
-    public TMP_Text timerText;
-    public GameObject winPanel;
+    public TMP_Text scoreText;
+    public GameObject winPanel; // Guardado para cuando derrotes al jefe final
     public GameObject losePanel;
 
-    private float timeRemaining;
     private bool gameEnded = false;
+    private bool scoreReached = false; // Bandera para saber si ya llegamos a los puntos
 
     void Start()
     {
-        // --- NUEVO CÓDIGO PARA LEER LA MEMORIA ---
-        // Preguntamos: ¿Existe un dato guardado llamado "SurvivalTime"?
-        if (PlayerPrefs.HasKey("SurvivalTime"))
-        {
-            // Si existe, lo usamos para sobreescribir el tiempo
-            survivalTime = PlayerPrefs.GetFloat("SurvivalTime");
-        }
-        // ------------------------------------------
-
-        timeRemaining = survivalTime;
+        UpdateScoreUI();
 
         if (winPanel != null) winPanel.SetActive(false);
         if (losePanel != null) losePanel.SetActive(false);
     }
 
-    void Update()
+    public void AddScore(int points)
     {
-        if (gameEnded) return;
+        // Si ya perdimos o ya alcanzamos el objetivo, dejamos de sumar puntos para la meta
+        if (gameEnded || scoreReached) return;
 
-        timeRemaining -= Time.deltaTime;
+        currentScore += points;
+        UpdateScoreUI();
 
-        if (timerText != null)
+        if (currentScore >= targetScore)
         {
-            timerText.text = Mathf.Ceil(timeRemaining).ToString();
-        }
-
-        if (timeRemaining <= 0)
-        {
-            WinGame();
+            OnTargetScoreReached();
         }
     }
 
-    // ESTA ES LA FUNCIÓN QUE TU SCRIPT ESTABA BUSCANDO
+    private void UpdateScoreUI()
+    {
+        if (scoreText != null)
+        {
+            scoreText.text = "Puntos: " + currentScore + " / " + targetScore;
+        }
+    }
+
+    // Lógica temporal al llegar a los puntos
+    private void OnTargetScoreReached()
+    {
+        scoreReached = true;
+        Debug.Log("¡Puntaje alcanzado! Limpiando el mapa...");
+
+        // 1. Apagamos todos los spawners de la escena
+        EnemySpawner[] spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
+        foreach (EnemySpawner spawner in spawners)
+        {
+            spawner.StopSpawning();
+        }
+
+        // 2. Destruimos a todos los enemigos que ya están en el mapa
+        Enemy[] enemigosVivos = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        foreach (Enemy enemigo in enemigosVivos)
+        {
+            // Destruimos el GameObject completo para borrarlo del mapa
+            Destroy(enemigo.gameObject);
+        }
+    }
+
     public void PlayerDied()
     {
         if (!gameEnded) LoseGame();
     }
 
+    // Esta función la dejamos intacta para usarla cuando mates al jefe
     void WinGame()
     {
         gameEnded = true;
-        Debug.Log("You Survived!");
-
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 

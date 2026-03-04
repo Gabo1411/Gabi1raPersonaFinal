@@ -24,4 +24,8 @@ public class EnemySpawner : MonoBehaviour
 
         Instantiate(enemigoPrefab, lugarFinal, Quaternion.identity);
     }
+    public void StopSpawning()
+    {
+        CancelInvoke("Spawn");
+    }
 }
