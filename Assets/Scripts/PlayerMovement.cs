@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI; // Necesario para modificar la UI
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -27,6 +28,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float dashTime = 0.2f; // Un tiempo corto, como 0.2 segundos
     [SerializeField] private TrailRenderer dashTrail;
     [SerializeField] private float dashCooldown = 1.5f; // Tiempo de espera entre dashes
+
+    [Header("UI del Dash")]
+    [SerializeField] private Image indicadorDashUI;
 
     private bool isDashing;
     private float nextDashTime;
@@ -90,6 +94,14 @@ public class PlayerMovement : MonoBehaviour
             isMoving = false;
         }
         lastPosition = gameObject.transform.position;
+
+        if (indicadorDashUI != null)
+        {
+            // Calcula un valor entre 0 y 1 para rellenar la imagen
+            float progresoCooldown = Mathf.Clamp01(1 - ((nextDashTime - Time.time) / dashCooldown));
+            indicadorDashUI.fillAmount = progresoCooldown;
+        }
+
     }
 
     // --- LA LÓGICA DEL DASH ---
