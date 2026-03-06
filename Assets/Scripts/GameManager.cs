@@ -13,6 +13,9 @@ public class GameManager : MonoBehaviour
     public GameObject winPanel; // Guardado para cuando derrotes al jefe final
     public GameObject losePanel;
 
+    [Header("Elementos del Nivel")]
+    public TrapDoorDemo escotillaNivel; // Referencia a la escotilla
+
     private bool gameEnded = false;
     private bool scoreReached = false; // Bandera para saber si ya llegamos a los puntos
 
@@ -46,11 +49,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // Lógica temporal al llegar a los puntos
+    // Lógica al llegar a los puntos
     private void OnTargetScoreReached()
     {
         scoreReached = true;
-        Debug.Log("¡Puntaje alcanzado! Limpiando el mapa...");
+        Debug.Log("¡Puntaje alcanzado! Limpiando el mapa y abriendo escotilla...");
 
         // 1. Apagamos todos los spawners de la escena
         EnemySpawner[] spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
@@ -63,8 +66,18 @@ public class GameManager : MonoBehaviour
         Enemy[] enemigosVivos = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
         foreach (Enemy enemigo in enemigosVivos)
         {
-            // Destruimos el GameObject completo para borrarlo del mapa
-            Destroy(enemigo.gameObject);
+            // Usamos la nueva función en lugar de Destroy(enemigo.gameObject)
+            enemigo.ClearFromMap(); 
+        }
+
+        // 3. Abrimos la escotilla para habilitar el warp
+        if (escotillaNivel != null)
+        {
+            escotillaNivel.AbrirEscotilla();
+        }
+        else
+        {
+            Debug.LogWarning("No asignaste la escotilla en el GameManager.");
         }
     }
 

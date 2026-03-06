@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
@@ -18,22 +19,45 @@ public class PlayerMovement : MonoBehaviour
     Vector3 velocity;
     bool isGrounded;
     bool isMoving;
-    public bool IsMoving => isMoving; // Expose read-only property so the field is read and the compiler warning disappears
+    public bool IsMoving => isMoving;
     private Vector3 lastPosition = new Vector3(0f, 0f, 0f);
+
+    [Header("Dash")]
+    [SerializeField] private float dashSpeed = 30f; // Asegúrate de darle un valor alto en el Inspector
+    [SerializeField] private float dashTime = 0.2f; // Un tiempo corto, como 0.2 segundos
+    [SerializeField] private TrailRenderer dashTrail;
+    [SerializeField] private float dashCooldown = 1.5f; // Tiempo de espera entre dashes
+
+    private bool isDashing;
+    private float nextDashTime;
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
-        // Initialize lastPosition to current position to avoid a false positive movement on the first frame
         lastPosition = transform.position;
-
         Health = maxHealth;
 
+        if (dashTrail != null)
+        {
+            dashTrail.emitting = false; // Nos aseguramos de que el rastro empiece apagado
+        }
     }
-
 
     void Update()
     {
-        //Verificar si el personaje esta en el suelo
+        // 1. Si estamos haciendo un dash, salimos del Update para no aplicar movimiento normal ni gravedad
+        if (isDashing)
+        {
+            return;
+        }
+
+        // 2. Detectar el input para iniciar el dash
+        if (Input.GetKeyDown(KeyCode.LeftShift) && Time.time >= nextDashTime)
+        {
+            StartCoroutine(DashCoroutine());
+        }
+
+        // --- MOVIMIENTO NORMAL ---
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
         if (isGrounded && velocity.y < 0)
         {
@@ -43,24 +67,20 @@ public class PlayerMovement : MonoBehaviour
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
 
-        //Calcular la direccion del movimiento
         Vector3 move = transform.right * x + transform.forward * z;
-
-        //Mover el personaje
         controller.Move(move * speed * Time.deltaTime);
 
-        //Check para saltar 
+        // Check para saltar 
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            //Saltar
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
 
-        //Caer
+        // Caer
         velocity.y += gravity * Time.deltaTime;
-
-        //Ejecutar el salto 
         controller.Move(velocity * Time.deltaTime);
+
+        // Comprobación de movimiento para animaciones/estado
         if (lastPosition != gameObject.transform.position && isGrounded == true)
         {
             isMoving = true;
@@ -70,5 +90,38 @@ public class PlayerMovement : MonoBehaviour
             isMoving = false;
         }
         lastPosition = gameObject.transform.position;
+    }
+
+    // --- LA LÓGICA DEL DASH ---
+    private IEnumerator DashCoroutine()
+    {
+        isDashing = true; // Bloquea el Update normal
+        nextDashTime = Time.time + dashCooldown; // Registra cuándo podremos volver a usarlo
+
+        if (dashTrail != null) dashTrail.emitting = true; // Enciende la estela
+
+        // Obtenemos la dirección actual de los inputs
+        float x = Input.GetAxisRaw("Horizontal");
+        float z = Input.GetAxisRaw("Vertical");
+        Vector3 dashDirection = (transform.right * x + transform.forward * z).normalized;
+
+        // Si el jugador no está presionando nada, el dash será hacia adelante
+        if (dashDirection == Vector3.zero)
+        {
+            dashDirection = transform.forward;
+        }
+
+        float startTime = Time.time;
+
+        // Mientras no se acabe el tiempo del dash, nos movemos a gran velocidad
+        while (Time.time < startTime + dashTime)
+        {
+            controller.Move(dashDirection * dashSpeed * Time.deltaTime);
+            yield return null; // Espera al siguiente frame
+        }
+
+        // Apagamos todo al terminar
+        if (dashTrail != null) dashTrail.emitting = false;
+        isDashing = false;
     }
 }

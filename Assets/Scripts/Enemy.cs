@@ -2,8 +2,12 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
-    public int health = 5;
-    public int pointsValue = 10; // Puntos que el jugador gana al derrotar a este enemigo
+    public int health = 15;
+    public int pointsValue = 10;
+
+    [Header("Efectos Visuales")]
+    public GameObject particulasMuerte; // Arrastra tu prefab de partículas aquí
+
     public void TakeDamage(int damage)
     {
         health -= damage;
@@ -14,16 +18,33 @@ public class Enemy : MonoBehaviour
         }
     }
 
+    // Muerte normal por daño del jugador (Da puntos)
     void Die()
-    { 
-        GameManager manager = FindFirstObjectByType<GameManager>();
+    {
+        GenerarParticulas();
 
+        GameManager manager = FindFirstObjectByType<GameManager>();
         if (manager != null)
         {
-            manager.AddScore(pointsValue); // Suma puntos al jugador
+            manager.AddScore(pointsValue);
         }
 
-        // Solo desaparece. No avisa al manager (porque ahora vamos por tiempo)
         Destroy(gameObject);
+    }
+
+    // Muerte por limpieza de mapa (NO da puntos, pero sí hace el efecto)
+    public void ClearFromMap()
+    {
+        GenerarParticulas();
+        Destroy(gameObject);
+    }
+
+    // Instancia las partículas en el lugar exacto del enemigo
+    private void GenerarParticulas()
+    {
+        if (particulasMuerte != null)
+        {
+            Instantiate(particulasMuerte, transform.position, Quaternion.identity);
+        }
     }
 }

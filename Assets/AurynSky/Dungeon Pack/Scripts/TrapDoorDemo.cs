@@ -1,36 +1,71 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class TrapDoorDemo : MonoBehaviour
 {
+    public Animator TrapDoorAnim; // Animator for the trap door;
 
-    //This script goes on the TrapDoor prefab;
+    [Header("Configuración de Teletransporte")]
+    public Transform puntoAparicionJefe; // Arrastra aquí un objeto vacío que esté en la arena del jefe
 
-    public Animator TrapDoorAnim; //Animator for the trap door;
+    private bool estaAbierta = false;
 
-    // Use this for initialization
     void Awake()
     {
-        //get the Animator component from the trap;
-        TrapDoorAnim = GetComponent<Animator>();
-        //start opening and closing the trap for demo purposes;
-        StartCoroutine(OpenCloseTrap());
+        // get the Animator component from the trap;
+        if (TrapDoorAnim == null)
+        {
+            TrapDoorAnim = GetComponent<Animator>();
+        }
     }
 
-
-    IEnumerator OpenCloseTrap()
+    // Esta función será llamada por el GameManager al llegar a los puntos
+    // Esta función es llamada por el GameManager
+    public void AbrirEscotilla()
     {
-        //play open animation;
-        TrapDoorAnim.SetTrigger("open");
-        //wait 2 seconds;
-        yield return new WaitForSeconds(2);
-        //play close animation;
-        TrapDoorAnim.SetTrigger("close");
-        //wait 2 seconds;
-        yield return new WaitForSeconds(2);
-        //Do it again;
-        StartCoroutine(OpenCloseTrap());
+        estaAbierta = true; // Habilita que el jugador pueda teletransportarse
 
+        // ESTA ES LA LÍNEA: Llama a la función "EjecutarAnimacion" después de 2 segundos
+        Invoke("EjecutarAnimacion", 2f);
+    }
+
+    // Nueva función que realmente activa el Animator
+    private void EjecutarAnimacion()
+    {
+        if (TrapDoorAnim != null)
+        {
+            TrapDoorAnim.SetTrigger("open");
+        }
+    }
+
+    // Detectamos si el jugador entra (o cae) en la escotilla
+    private void OnTriggerEnter(Collider other)
+    {
+        // Solo funciona si la escotilla ya se abrió y el que entra es el jugador
+        if (estaAbierta && other.CompareTag("Player"))
+        {
+            if (puntoAparicionJefe == null)
+            {
+                Debug.LogWarning("¡Falta asignar el punto de aparición del jefe en la escotilla!");
+                return;
+            }
+
+            // Buscamos el CharacterController del jugador
+            CharacterController cc = other.GetComponent<CharacterController>();
+
+            if (cc != null)
+            {
+                // Apagamos las físicas temporalmente para permitir el teletransporte
+                cc.enabled = false;
+                other.transform.position = puntoAparicionJefe.position;
+                cc.enabled = true;
+            }
+            else
+            {
+                // Respaldo por si en el futuro cambias el sistema de movimiento
+                other.transform.position = puntoAparicionJefe.position;
+            }
+
+            Debug.Log("¡Warp a la zona del jefe exitoso!");
+        }
     }
 }

@@ -114,6 +114,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   health: 15
   pointsValue: 10
+  particulasMuerte: {fileID: 211157791665972458, guid: 3cdd2b987abf32e45aa24e7b3fe63b13, type: 3}
 --- !u!114 &595551930373106242
 MonoBehaviour:
   m_ObjectHideFlags: 0
