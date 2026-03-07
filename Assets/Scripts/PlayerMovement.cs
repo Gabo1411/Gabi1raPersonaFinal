@@ -29,9 +29,6 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private TrailRenderer dashTrail;
     [SerializeField] private float dashCooldown = 1.5f; // Tiempo de espera entre dashes
 
-    [Header("UI del Dash")]
-    [SerializeField] private Image indicadorDashUI;
-
     private bool isDashing;
     private float nextDashTime;
 
@@ -95,13 +92,6 @@ public class PlayerMovement : MonoBehaviour
         }
         lastPosition = gameObject.transform.position;
 
-        if (indicadorDashUI != null)
-        {
-            // Calcula un valor entre 0 y 1 para rellenar la imagen
-            float progresoCooldown = Mathf.Clamp01(1 - ((nextDashTime - Time.time) / dashCooldown));
-            indicadorDashUI.fillAmount = progresoCooldown;
-        }
-
     }
 
     // --- LA LÓGICA DEL DASH ---
@@ -135,5 +125,18 @@ public class PlayerMovement : MonoBehaviour
         // Apagamos todo al terminar
         if (dashTrail != null) dashTrail.emitting = false;
         isDashing = false;
+    }
+
+    public float GetDashCooldownProgress()
+    {
+        // Si ya pasó el tiempo, el dash está listo (100% o 1f)
+        if (Time.time >= nextDashTime)
+        {
+            return 1f;
+        }
+
+        // Si está en enfriamiento, calculamos el porcentaje restante (de 0 a 1)
+        float tiempoRestante = nextDashTime - Time.time;
+        return 1f - (tiempoRestante / dashCooldown);
     }
 }

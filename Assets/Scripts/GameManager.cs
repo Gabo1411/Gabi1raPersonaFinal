@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -10,14 +11,21 @@ public class GameManager : MonoBehaviour
 
     [Header("UI References")]
     public TMP_Text scoreText;
-    public GameObject winPanel; // Guardado para cuando derrotes al jefe final
+    public GameObject winPanel; 
     public GameObject losePanel;
+    public GameObject pausePanel;
+    public GameObject controlsPanel;
+
+    [Header("UI Dash")]
+    public PlayerMovement playerScript; 
+    public Image dashFillImage;
 
     [Header("Elementos del Nivel")]
-    public TrapDoorDemo escotillaNivel; // Referencia a la escotilla
+    public TrapDoorDemo escotillaNivel; 
 
     private bool gameEnded = false;
-    private bool scoreReached = false; // Bandera para saber si ya llegamos a los puntos
+    private bool scoreReached = false;
+    private bool isPaused = false; 
 
     void Start()
     {
@@ -25,11 +33,77 @@ public class GameManager : MonoBehaviour
 
         if (winPanel != null) winPanel.SetActive(false);
         if (losePanel != null) losePanel.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (controlsPanel != null) controlsPanel.SetActive(false);
+    }
+
+    void Update()
+    {
+        if (playerScript != null && dashFillImage != null)
+        {
+            dashFillImage.fillAmount = playerScript.GetDashCooldownProgress();
+
+            if (dashFillImage.fillAmount >= 1f)
+            {
+                dashFillImage.color = new Color(1f, 1f, 1f, 0.8f);
+            }
+            else
+            {
+                dashFillImage.color = new Color(1f, 1f, 1f, 0.3f);
+            }
+        }
+        if (Input.GetKeyDown(KeyCode.Escape) && !gameEnded)
+        {
+            if (isPaused)
+            {
+                if (controlsPanel != null) controlsPanel.SetActive(false);
+                ResumeGame();
+            }
+            else
+            {
+                PauseGame();
+            }
+        }
+
+    }
+
+    public void PauseGame()
+    {
+        isPaused = true;
+        Time.timeScale = 0f; 
+
+        if (pausePanel != null) pausePanel.SetActive(true);
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+    public void ResumeGame()
+    {
+        isPaused = false;
+        Time.timeScale = 1f;
+
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (controlsPanel != null) controlsPanel.SetActive(false);
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    public void OpenControls()
+    {
+        if (pausePanel != null) pausePanel.SetActive(false); 
+        if (controlsPanel != null) controlsPanel.SetActive(true); 
+    }
+
+    public void CloseControls()
+    {
+        if (controlsPanel != null) controlsPanel.SetActive(false); 
+        if (pausePanel != null) pausePanel.SetActive(true); 
     }
 
     public void AddScore(int points)
     {
-        // Si ya perdimos o ya alcanzamos el objetivo, dejamos de sumar puntos para la meta
+       
         if (gameEnded || scoreReached) return;
 
         currentScore += points;
