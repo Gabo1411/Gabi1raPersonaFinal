@@ -7,8 +7,11 @@ public class TrapDoorDemo : MonoBehaviour
     [Header("Configuración de Teletransporte")]
     public Transform puntoAparicionJefe;
 
+    [Header("Configuración del Jefe (NUEVO)")]
+    public GameObject jefePrincipal; // Arrastra el objeto de tu Jefe aquí
+
     private bool estaAbierta = false;
-    private Collider miCollider; // NUEVO: Referencia al collider de la escotilla
+    private Collider miCollider;
 
     void Awake()
     {
@@ -17,17 +20,22 @@ public class TrapDoorDemo : MonoBehaviour
             TrapDoorAnim = GetComponent<Animator>();
         }
 
-        // Buscamos el collider y lo apagamos desde el inicio
         miCollider = GetComponent<Collider>();
         if (miCollider != null)
         {
             miCollider.enabled = false;
         }
+
+        // NUEVO: Nos aseguramos de apagar al jefe al iniciar el juego
+        // para que no interactúe con nada hasta que bajes.
+        if (jefePrincipal != null)
+        {
+            jefePrincipal.SetActive(false);
+        }
     }
 
     public void AbrirEscotilla()
     {
-        // Esperamos 2 segundos antes de ejecutar la animación y habilitar la caída
         Invoke("EjecutarAnimacion", 2f);
     }
 
@@ -40,7 +48,6 @@ public class TrapDoorDemo : MonoBehaviour
             TrapDoorAnim.SetTrigger("open");
         }
 
-        // Encendemos el collider justo cuando la puerta se abre
         if (miCollider != null)
         {
             miCollider.enabled = true;
@@ -65,6 +72,31 @@ public class TrapDoorDemo : MonoBehaviour
             {
                 other.transform.position = puntoAparicionJefe.position;
             }
+
+            // --- NUEVO: DESPERTAR LA ARENA DEL JEFE ---
+
+            // 1. Encendemos al jefe principal
+            if (jefePrincipal != null)
+            {
+                jefePrincipal.SetActive(true);
+            }
+
+            // 2. Buscamos todos los spawners de la arena y los activamos
+            BossArenaSpawner[] spawners = FindObjectsByType<BossArenaSpawner>(FindObjectsSortMode.None);
+            foreach (BossArenaSpawner spawner in spawners)
+            {
+                spawner.ActivarSpawner();
+            }
+
+            Debug.Log("¡Warp a la zona del jefe exitoso! Arena activada.");
+
+            GameManager manager = FindFirstObjectByType<GameManager>();
+            if (manager != null)
+            {
+                manager.OcultarPuntaje();
+            }
+
+            Debug.Log("¡Warp a la zona del jefe exitoso! Arena activada y puntos ocultos.");
         }
     }
 }

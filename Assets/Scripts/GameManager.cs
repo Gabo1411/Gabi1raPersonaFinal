@@ -11,21 +11,25 @@ public class GameManager : MonoBehaviour
 
     [Header("UI References")]
     public TMP_Text scoreText;
-    public GameObject winPanel; 
+    public GameObject winPanel;
     public GameObject losePanel;
     public GameObject pausePanel;
     public GameObject controlsPanel;
 
+    [Header("Contenedor de Interfaz (NUEVO)")]
+    public GameObject gameplayHUD; // Aquí agruparemos Vida, Balas y Dash
+
     [Header("UI Dash")]
-    public PlayerMovement playerScript; 
+    public PlayerMovement playerScript;
     public Image dashFillImage;
 
     [Header("Elementos del Nivel")]
-    public TrapDoorDemo escotillaNivel; 
+    public TrapDoorDemo escotillaNivel;
+    public GameObject portalSalida;
 
     private bool gameEnded = false;
     private bool scoreReached = false;
-    private bool isPaused = false; 
+    private bool isPaused = false;
 
     void Start()
     {
@@ -35,6 +39,12 @@ public class GameManager : MonoBehaviour
         if (losePanel != null) losePanel.SetActive(false);
         if (pausePanel != null) pausePanel.SetActive(false);
         if (controlsPanel != null) controlsPanel.SetActive(false);
+
+        // Nos aseguramos de que la UI de juego esté visible al empezar
+        if (gameplayHUD != null) gameplayHUD.SetActive(true);
+        if (scoreText != null) scoreText.gameObject.SetActive(true);
+
+        if (portalSalida != null) portalSalida.SetActive(false);
     }
 
     void Update()
@@ -52,6 +62,7 @@ public class GameManager : MonoBehaviour
                 dashFillImage.color = new Color(1f, 1f, 1f, 0.3f);
             }
         }
+
         if (Input.GetKeyDown(KeyCode.Escape) && !gameEnded)
         {
             if (isPaused)
@@ -64,19 +75,19 @@ public class GameManager : MonoBehaviour
                 PauseGame();
             }
         }
-
     }
 
     public void PauseGame()
     {
         isPaused = true;
-        Time.timeScale = 0f; 
+        Time.timeScale = 0f;
 
         if (pausePanel != null) pausePanel.SetActive(true);
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
+
     public void ResumeGame()
     {
         isPaused = false;
@@ -91,19 +102,18 @@ public class GameManager : MonoBehaviour
 
     public void OpenControls()
     {
-        if (pausePanel != null) pausePanel.SetActive(false); 
-        if (controlsPanel != null) controlsPanel.SetActive(true); 
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (controlsPanel != null) controlsPanel.SetActive(true);
     }
 
     public void CloseControls()
     {
-        if (controlsPanel != null) controlsPanel.SetActive(false); 
-        if (pausePanel != null) pausePanel.SetActive(true); 
+        if (controlsPanel != null) controlsPanel.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(true);
     }
 
     public void AddScore(int points)
     {
-       
         if (gameEnded || scoreReached) return;
 
         currentScore += points;
@@ -123,35 +133,65 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // Lógica al llegar a los puntos
+    // NUEVA FUNCIÓN: Solo apaga el texto de los puntos
+    public void OcultarPuntaje()
+    {
+        if (scoreText != null)
+        {
+            scoreText.gameObject.SetActive(false);
+        }
+    }
+
     private void OnTargetScoreReached()
     {
         scoreReached = true;
         Debug.Log("¡Puntaje alcanzado! Limpiando el mapa y abriendo escotilla...");
 
-        // 1. Apagamos todos los spawners de la escena
         EnemySpawner[] spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
         foreach (EnemySpawner spawner in spawners)
         {
             spawner.StopSpawning();
         }
 
-        // 2. Destruimos a todos los enemigos que ya están en el mapa
         Enemy[] enemigosVivos = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
         foreach (Enemy enemigo in enemigosVivos)
         {
-            // Usamos la nueva función en lugar de Destroy(enemigo.gameObject)
-            enemigo.ClearFromMap(); 
+            enemigo.ClearFromMap();
         }
 
-        // 3. Abrimos la escotilla para habilitar el warp
         if (escotillaNivel != null)
         {
             escotillaNivel.AbrirEscotilla();
         }
+    }
+
+    public void BossDefeated()
+    {
+        Debug.Log("¡Jefe derrotado! Limpiando arena y encendiendo el portal...");
+
+        // 1. Apagamos todos los spawners de la arena del jefe para que no salgan más
+        BossArenaSpawner[] spawners = FindObjectsByType<BossArenaSpawner>(FindObjectsSortMode.None);
+        foreach (BossArenaSpawner spawner in spawners)
+        {
+            spawner.DetenerSpawner();
+        }
+
+        // 2. Hacemos explotar a todos los enemigos de distracción que sigan vivos
+        Enemy[] enemigosVivos = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        foreach (Enemy enemigo in enemigosVivos)
+        {
+            enemigo.ClearFromMap();
+        }
+
+        // 3. Finalmente, encendemos el portal de salida
+        if (portalSalida != null)
+        {
+            portalSalida.SetActive(true);
+        }
         else
         {
-            Debug.LogWarning("No asignaste la escotilla en el GameManager.");
+            // Respaldo por si olvidas asignar el portal en Unity
+            WinGame();
         }
     }
 
@@ -160,12 +200,15 @@ public class GameManager : MonoBehaviour
         if (!gameEnded) LoseGame();
     }
 
-    // Esta función la dejamos intacta para usarla cuando mates al jefe
-    void WinGame()
+    public void WinGame()
     {
         gameEnded = true;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        // Ocultamos la interfaz al ganar
+        if (gameplayHUD != null) gameplayHUD.SetActive(false);
+        if (scoreText != null) scoreText.gameObject.SetActive(false);
 
         if (winPanel != null) winPanel.SetActive(true);
         Time.timeScale = 0f;
@@ -178,6 +221,10 @@ public class GameManager : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        // Ocultamos la interfaz al perder
+        if (gameplayHUD != null) gameplayHUD.SetActive(false);
+        if (scoreText != null) scoreText.gameObject.SetActive(false);
 
         if (losePanel != null) losePanel.SetActive(true);
         Time.timeScale = 0f;

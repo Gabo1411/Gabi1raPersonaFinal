@@ -16,6 +16,15 @@ public class BulletDamage : MonoBehaviour
             }
             Destroy(gameObject); // Destruir bala
         }
+        else if (collision.gameObject.CompareTag("Boss"))
+        {
+            Boss boss = collision.gameObject.GetComponent<Boss>();
+            if (boss != null)
+            {
+                boss.TakeDamage(damage);
+            }
+            Destroy(gameObject); // Destruir bala
+        }
         // 2. Si choca con pared o suelo, solo destruirse
         else if (!collision.gameObject.CompareTag("Player"))
         {
