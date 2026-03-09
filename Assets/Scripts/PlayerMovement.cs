@@ -1,34 +1,40 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI; // Necesario para modificar la UI
 
 public class PlayerMovement : MonoBehaviour
 {
     private CharacterController controller;
 
+    [Header("Estadísticas")]
     public float speed = 12f;
     public float gravity = -9.81f * 2;
     public float jumpHeight = 3f;
-
     public int maxHealth = 50;
     public int Health;
     public int bonusDanio = 0;
 
+    [Header("Sonidos")]
+    public AudioClip sonidoDash;
+    private AudioSource audioSource;
+
+    [Header("Sonidos")]
+    public AudioSource fuenteDash; // Arrastra el AudioSource del Player aquí
+    public AudioClip clipDash;
+
+    [Header("Detección de Suelo")]
     public Transform groundCheck;
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
 
     Vector3 velocity;
     bool isGrounded;
-    bool isMoving;
-    public bool IsMoving => isMoving;
-    private Vector3 lastPosition = new Vector3(0f, 0f, 0f);
+    private Vector3 lastPosition;
 
-    [Header("Dash")]
-    [SerializeField] private float dashSpeed = 30f; // Asegúrate de darle un valor alto en el Inspector
-    [SerializeField] private float dashTime = 0.2f; // Un tiempo corto, como 0.2 segundos
+    [Header("Configuración Dash")]
+    [SerializeField] private float dashSpeed = 30f;
+    [SerializeField] private float dashTime = 0.2f;
     [SerializeField] private TrailRenderer dashTrail;
-    [SerializeField] private float dashCooldown = 1.5f; // Tiempo de espera entre dashes
+    [SerializeField] private float dashCooldown = 1.5f;
 
     private bool isDashing;
     private float nextDashTime;
@@ -38,33 +44,22 @@ public class PlayerMovement : MonoBehaviour
         controller = GetComponent<CharacterController>();
         lastPosition = transform.position;
         Health = maxHealth;
+        audioSource = GetComponent<AudioSource>();
 
-        if (dashTrail != null)
-        {
-            dashTrail.emitting = false; // Nos aseguramos de que el rastro empiece apagado
-        }
+        if (dashTrail != null) dashTrail.emitting = false;
     }
 
     void Update()
     {
-        // 1. Si estamos haciendo un dash, salimos del Update para no aplicar movimiento normal ni gravedad
-        if (isDashing)
-        {
-            return;
-        }
+        if (isDashing) return;
 
-        // 2. Detectar el input para iniciar el dash
         if (Input.GetKeyDown(KeyCode.LeftShift) && Time.time >= nextDashTime)
         {
             StartCoroutine(DashCoroutine());
         }
 
-        // --- MOVIMIENTO NORMAL ---
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-        if (isGrounded && velocity.y < 0)
-        {
-            velocity.y = -2f;
-        }
+        if (isGrounded && velocity.y < 0) velocity.y = -2f;
 
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
@@ -72,72 +67,48 @@ public class PlayerMovement : MonoBehaviour
         Vector3 move = transform.right * x + transform.forward * z;
         controller.Move(move * speed * Time.deltaTime);
 
-        // Check para saltar 
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
 
-        // Caer
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
-
-        // Comprobación de movimiento para animaciones/estado
-        if (lastPosition != gameObject.transform.position && isGrounded == true)
-        {
-            isMoving = true;
-        }
-        else
-        {
-            isMoving = false;
-        }
-        lastPosition = gameObject.transform.position;
-
+        lastPosition = transform.position;
     }
 
-    // --- LA LÓGICA DEL DASH ---
     private IEnumerator DashCoroutine()
     {
-        isDashing = true; // Bloquea el Update normal
-        nextDashTime = Time.time + dashCooldown; // Registra cuándo podremos volver a usarlo
+        isDashing = true;
+        nextDashTime = Time.time + dashCooldown;
 
-        if (dashTrail != null) dashTrail.emitting = true; // Enciende la estela
+        if (fuenteDash != null && clipDash != null)
+        {
+            fuenteDash.PlayOneShot(clipDash);
+        }
 
-        // Obtenemos la dirección actual de los inputs
+        if (dashTrail != null) dashTrail.emitting = true;
+
         float x = Input.GetAxisRaw("Horizontal");
         float z = Input.GetAxisRaw("Vertical");
         Vector3 dashDirection = (transform.right * x + transform.forward * z).normalized;
 
-        // Si el jugador no está presionando nada, el dash será hacia adelante
-        if (dashDirection == Vector3.zero)
-        {
-            dashDirection = transform.forward;
-        }
+        if (dashDirection == Vector3.zero) dashDirection = transform.forward;
 
         float startTime = Time.time;
-
-        // Mientras no se acabe el tiempo del dash, nos movemos a gran velocidad
         while (Time.time < startTime + dashTime)
         {
             controller.Move(dashDirection * dashSpeed * Time.deltaTime);
-            yield return null; // Espera al siguiente frame
+            yield return null;
         }
 
-        // Apagamos todo al terminar
         if (dashTrail != null) dashTrail.emitting = false;
         isDashing = false;
     }
 
     public float GetDashCooldownProgress()
     {
-        // Si ya pasó el tiempo, el dash está listo (100% o 1f)
-        if (Time.time >= nextDashTime)
-        {
-            return 1f;
-        }
-
-        // Si está en enfriamiento, calculamos el porcentaje restante (de 0 a 1)
-        float tiempoRestante = nextDashTime - Time.time;
-        return 1f - (tiempoRestante / dashCooldown);
+        if (Time.time >= nextDashTime) return 1f;
+        return 1f - ((nextDashTime - Time.time) / dashCooldown);
     }
 }

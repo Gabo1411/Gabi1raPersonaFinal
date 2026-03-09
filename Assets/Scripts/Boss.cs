@@ -10,124 +10,121 @@ public class Boss : MonoBehaviour
     public Image barraDeVida;
     public GameObject particulasMuerte;
 
-    [Header("Referencias de Combate")]
+    [Header("Referencias")]
     public GameObject balaPrefab;
     public Transform puntoDisparo;
     private Transform player;
+    private Animator animator;
 
-    [Header("Configuración General IA")]
+    [Header("Fuentes de Sonido (AudioSources)")]
+    public AudioSource fuenteTaunt;    // Arrastra aquí el AudioSource para el rugido
+    public AudioSource fuenteDisparo;  // Arrastra aquí el AudioSource para los disparos
+    public AudioSource fuenteMuerte;   // Arrastra aquí el AudioSource para la muerte
+
+    [Header("Clips de Audio")]
+    public AudioClip clipTaunt;
+    public AudioClip clipDisparo;
+    public AudioClip clipMuerte;
+
+    [Header("Configuración IA")]
     public float tiempoEntreCiclos = 4.0f;
-    private bool estaAtacando = false;
+    public float esperaAperturaBoca = 0.5f;
+    private bool estaMuerto = false;
 
-    [Header("Ataque 1: Ráfaga")]
-    public int balasRafaga = 5;
-    public float cadenciaRafaga = 0.15f;
-
-    [Header("Ataque 2: Metralladora")]
-    public float duracionMetralladora = 3.0f;
-    public float cadenciaMetralladora = 0.1f;
-
-    [Header("Ataque 3: Triángulo (Muro)")]
-    public int repeticionesTriangulo = 3;
-    public float esperaEntreTriangulos = 0.8f;
-    public float separacionTriangulo = 0.6f;
+    [Header("Ataques (5 segundos)")]
+    public int balasRafaga = 15;
+    public float cadenciaRafaga = 0.33f;
+    public float duracionMetralladora = 5.0f;
+    public int seriesDeTriangulos = 6;
+    public float pausaEntreSeries = 0.8f;
+    public float separacionTriangulo = 1.2f;
 
     void Start()
     {
         currentHealth = maxHealth;
+        animator = GetComponentInChildren<Animator>();
         ActualizarUI();
-
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null) player = playerObj.transform;
-
+        player = GameObject.FindGameObjectWithTag("Player")?.transform;
         StartCoroutine(CicloDeIA());
     }
 
     void Update()
     {
-        if (player == null || currentHealth <= 0) return;
-
-        // El jefe siempre mira al jugador
-        Vector3 direccion = (player.position - transform.position);
-        direccion.y = 0;
-        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direccion), Time.deltaTime * 3f);
+        if (player == null || estaMuerto) return;
+        Vector3 dir = (player.position - transform.position);
+        dir.y = 0;
+        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), Time.deltaTime * 3f);
     }
 
     IEnumerator CicloDeIA()
     {
-        while (currentHealth > 0)
+        while (!estaMuerto)
         {
             yield return new WaitForSeconds(tiempoEntreCiclos);
+            if (estaMuerto) yield break;
+
+            if (animator != null) animator.SetTrigger("Taunt");
+
+            // --- REPRODUCIR RUGIDO ---
+            if (fuenteTaunt != null && clipTaunt != null) fuenteTaunt.PlayOneShot(clipTaunt);
+
+            yield return new WaitForSeconds(esperaAperturaBoca);
 
             int eleccion = Random.Range(0, 3);
-
             if (eleccion == 0) yield return AtaqueRafaga();
             else if (eleccion == 1) yield return AtaqueMetralladora();
             else yield return AtaqueTriangulo();
         }
     }
 
-    // --- LÓGICA DE LOS ATAQUES ---
-
     IEnumerator AtaqueRafaga()
     {
-        estaAtacando = true;
         for (int i = 0; i < balasRafaga; i++)
         {
-            InstanciarBala(puntoDisparo.position, true); // Sigue al jugador
+            InstanciarBala(puntoDisparo.position, true);
             yield return new WaitForSeconds(cadenciaRafaga);
         }
-        estaAtacando = false;
     }
 
     IEnumerator AtaqueMetralladora()
     {
-        estaAtacando = true;
         float tiempoFin = Time.time + duracionMetralladora;
         while (Time.time < tiempoFin)
         {
-            InstanciarBala(puntoDisparo.position, true); // Sigue al jugador
-            yield return new WaitForSeconds(cadenciaMetralladora);
+            InstanciarBala(puntoDisparo.position, true);
+            yield return new WaitForSeconds(0.1f);
         }
-        estaAtacando = false;
     }
 
     IEnumerator AtaqueTriangulo()
     {
-        estaAtacando = true;
-        for (int i = 0; i < repeticionesTriangulo; i++)
+        for (int i = 0; i < seriesDeTriangulos; i++)
         {
-            // Posiciones en formación de triángulo (usando ejes locales del jefe)
-            Vector3 posArriba = puntoDisparo.position + puntoDisparo.up * separacionTriangulo;
-            Vector3 posIzquierda = puntoDisparo.position - puntoDisparo.up * (separacionTriangulo / 2f) - puntoDisparo.right * separacionTriangulo;
-            Vector3 posDerecha = puntoDisparo.position - puntoDisparo.up * (separacionTriangulo / 2f) + puntoDisparo.right * separacionTriangulo;
+            Vector3 up = puntoDisparo.up * separacionTriangulo;
+            Vector3 right = puntoDisparo.right * separacionTriangulo;
 
-            // Disparamos las 3 SIN LookAt (falso) para que viajen en paralelo
-            InstanciarBala(posArriba, false);
-            InstanciarBala(posIzquierda, false);
-            InstanciarBala(posDerecha, false);
+            InstanciarBala(puntoDisparo.position + up, false);
+            InstanciarBala(puntoDisparo.position - up / 2f - right, false);
+            InstanciarBala(puntoDisparo.position - up / 2f + right, false);
 
-            yield return new WaitForSeconds(esperaEntreTriangulos);
+            yield return new WaitForSeconds(pausaEntreSeries);
         }
-        estaAtacando = false;
     }
 
-    void InstanciarBala(Vector3 pos, bool seguirJugador)
+    void InstanciarBala(Vector3 pos, bool seguir)
     {
-        if (balaPrefab == null || puntoDisparo == null) return;
+        if (estaMuerto || balaPrefab == null) return;
 
-        GameObject bala = Instantiate(balaPrefab, pos, puntoDisparo.rotation);
+        // --- REPRODUCIR DISPARO ---
+        if (fuenteDisparo != null && clipDisparo != null) fuenteDisparo.PlayOneShot(clipDisparo);
 
-        if (seguirJugador)
-        {
-            // Apunta al torso para mayor precisión
-            bala.transform.LookAt(player.position + Vector3.up * 1.2f);
-        }
-        // Si seguirJugador es falso, la bala mantiene la rotación del puntoDisparo (paralela)
+        GameObject b = Instantiate(balaPrefab, pos, puntoDisparo.rotation);
+        if (seguir) b.transform.LookAt(player.position + Vector3.up * 1.2f);
     }
 
     public void TakeDamage(int damage)
     {
+        if (estaMuerto) return;
         currentHealth -= damage;
         ActualizarUI();
         if (currentHealth <= 0) Die();
@@ -137,9 +134,16 @@ public class Boss : MonoBehaviour
 
     void Die()
     {
+        estaMuerto = true;
         StopAllCoroutines();
+
+        // --- REPRODUCIR MUERTE ---
+        if (fuenteMuerte != null && clipMuerte != null) fuenteMuerte.PlayOneShot(clipMuerte);
+
+        if (animator != null) animator.SetTrigger("Die");
         if (particulasMuerte != null) Instantiate(particulasMuerte, transform.position, Quaternion.identity);
+
         FindFirstObjectByType<GameManager>()?.BossDefeated();
-        Destroy(gameObject);
+        Destroy(gameObject, 2.5f);
     }
 }

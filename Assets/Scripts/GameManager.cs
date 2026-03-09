@@ -133,7 +133,6 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // NUEVA FUNCIÓN: Solo apaga el texto de los puntos
     public void OcultarPuntaje()
     {
         if (scoreText != null)
@@ -167,32 +166,32 @@ public class GameManager : MonoBehaviour
 
     public void BossDefeated()
     {
-        Debug.Log("¡Jefe derrotado! Limpiando arena y encendiendo el portal...");
+        Debug.Log("¡Jefe derrotado! Limpiando arena...");
 
-        // 1. Apagamos todos los spawners de la arena del jefe para que no salgan más
+        // 1. Detener spawners (Ya lo tienes)
         BossArenaSpawner[] spawners = FindObjectsByType<BossArenaSpawner>(FindObjectsSortMode.None);
         foreach (BossArenaSpawner spawner in spawners)
         {
             spawner.DetenerSpawner();
         }
 
-        // 2. Hacemos explotar a todos los enemigos de distracción que sigan vivos
-        Enemy[] enemigosVivos = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
-        foreach (Enemy enemigo in enemigosVivos)
+        // 2. Limpiar Cactus (Clase Enemy)
+        Enemy[] cactusVivos = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        foreach (Enemy cactus in cactusVivos)
         {
-            enemigo.ClearFromMap();
+            cactus.ClearFromMap();
         }
 
-        // 3. Finalmente, encendemos el portal de salida
-        if (portalSalida != null)
+        // 3. NUEVO: Limpiar Hongos (Clase EnemyMushroom)
+        EnemyMushroom[] hongosVivos = FindObjectsByType<EnemyMushroom>(FindObjectsSortMode.None);
+        foreach (EnemyMushroom hongo in hongosVivos)
         {
-            portalSalida.SetActive(true);
+            // Usamos TakeDamage con un número alto para activar su muerte normal
+            hongo.TakeDamage(999);
         }
-        else
-        {
-            // Respaldo por si olvidas asignar el portal en Unity
-            WinGame();
-        }
+
+        // 4. Activar portal
+        if (portalSalida != null) portalSalida.SetActive(true);
     }
 
     public void PlayerDied()

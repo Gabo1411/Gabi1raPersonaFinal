@@ -6,6 +6,9 @@ public class PowerUp : MonoBehaviour
     public enum TipoPocion { Vida, Danio, Velocidad }
     public TipoPocion tipo;
 
+    [Header("Sonido")]
+    public AudioClip sonidoRecogida;
+
     [Header("Ajustes")]
     public float valorEfecto = 20f; // Para Vida, es la cantidad de salud a recuperar. Para Daño y Velocidad, es el aumento temporal.
     public float duracionEfecto = 5f; // Solo se usará para Daño y Velocidad
@@ -16,6 +19,11 @@ public class PowerUp : MonoBehaviour
         {
             AplicarEfecto(other.gameObject);
 
+            if (sonidoRecogida != null)
+            {
+                // Usamos PlayClipAtPoint para que el sonido no se corte al destruir la botella
+                AudioSource.PlayClipAtPoint(sonidoRecogida, transform.position);
+            }
             // Si es vida, destruimos al instante. Si es temporal, ocultamos y esperamos.
             if (tipo == TipoPocion.Vida)
             {
