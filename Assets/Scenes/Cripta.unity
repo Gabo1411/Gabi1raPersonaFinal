@@ -16634,7 +16634,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c7862c11e81d92d4c9a92f8a9c883b20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MouseMovement
-  mouseSensitivity: 500
+  mouseSensitivity: 450
 --- !u!82 &1225177124
 AudioSource:
   m_ObjectHideFlags: 0

@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 8459462317989784087}
   - component: {fileID: -7797315868067080654}
   - component: {fileID: -786492777890872984}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: BalaJefe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
