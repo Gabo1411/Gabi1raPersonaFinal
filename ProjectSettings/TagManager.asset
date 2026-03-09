@@ -8,6 +8,8 @@ TagManager:
   - Wall
   - Enemy
   - Boss
+  - Interact
+  - PowerUp
   layers:
   - Default
   - TransparentFX
@@ -15,8 +17,8 @@ TagManager:
   - Ground
   - Water
   - UI
-  - 
-  - 
+  - BalaJefe
+  - Bala
   - 
   - 
   - 

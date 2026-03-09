@@ -11,11 +11,9 @@ GameObject:
   - component: {fileID: 6568604287318253698}
   - component: {fileID: 3027061896974614502}
   - component: {fileID: 890974681190441589}
-  - component: {fileID: 4054707457753029522}
   - component: {fileID: 5783509077525040170}
-  - component: {fileID: 595551930373106242}
   - component: {fileID: 2770982581403911228}
-  - component: {fileID: 6536586081963886324}
+  - component: {fileID: -4353748907329283175}
   m_Layer: 0
   m_Name: EnemyDistaction
   m_TagString: Enemy
@@ -87,19 +85,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!114 &4054707457753029522
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3744582517636513714}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 236df4b5a0f507941ba4cb9d20ae8fbb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyChase
-  player: {fileID: 0}
 --- !u!114 &5783509077525040170
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -114,22 +99,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   health: 15
   pointsValue: 0
-  particulasMuerte: {fileID: 211157791665972458, guid: 3cdd2b987abf32e45aa24e7b3fe63b13, type: 3}
---- !u!114 &595551930373106242
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3744582517636513714}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4a3ec859bb03234e8a491cdba918d50, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyDamage
   damage: 10
-  damageCooldown: 1
-  attackRange: 2
+  particulasMuerte: {fileID: 211157791665972458, guid: 3cdd2b987abf32e45aa24e7b3fe63b13, type: 3}
+  distanciaAtaque: 1.8
+  cooldownAtaque: 1.5
 --- !u!195 &2770982581403911228
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -152,7 +125,7 @@ NavMeshAgent:
   m_BaseOffset: 0.5
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!114 &6536586081963886324
+--- !u!114 &-4353748907329283175
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -161,10 +134,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 3744582517636513714}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 236df4b5a0f507941ba4cb9d20ae8fbb, type: 3}
+  m_Script: {fileID: 11500000, guid: 584709c19f511e7439216b11c3754f48, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyChase
-  player: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::LootTable
+  pociones:
+  - {fileID: 5277414661472132187, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
+  - {fileID: 2945837135294482389, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
+  - {fileID: 1583086087258897404, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
+  probabilidadDrop: 100
 --- !u!1001 &2883316095665763969
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -180,7 +157,7 @@ PrefabInstance:
     - target: {fileID: 7769598065701365474, guid: dcc982307a817354fafb192abcd9b917, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: fc78956123c341b4eb2997a63eeaac08, type: 2}
+      objectReference: {fileID: 9100000, guid: 4198fa9b9a5842c0a5e4559b286248eb, type: 2}
     - target: {fileID: 7807431114919716905, guid: dcc982307a817354fafb192abcd9b917, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.0372661

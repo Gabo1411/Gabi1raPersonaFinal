@@ -4,21 +4,33 @@ public class BulletDamage : MonoBehaviour
 {
     public int damage = 3;
 
-    private void OnCollisionEnter(Collision collision)
+    // Usamos OnTriggerEnter y Collider other
+    private void OnTriggerEnter(Collider other)
     {
-        // 1. Si choca con enemigo, hacer daño
-        if (collision.gameObject.CompareTag("Enemy"))
+
+        if (other.GetComponent<BalaJefe>() != null) return;
+
+        // Si choca con un enemigo normal (Cactus)
+        if (other.CompareTag("Enemy"))
         {
-            Enemy enemy = collision.gameObject.GetComponent<Enemy>();
+            Enemy enemy = other.GetComponent<Enemy>();
             if (enemy != null)
             {
                 enemy.TakeDamage(damage);
             }
-            Destroy(gameObject); // Destruir bala
+
+            // --- NUEVO: También buscamos al Hongo ---
+            EnemyMushroom hongo = other.GetComponent<EnemyMushroom>();
+            if (hongo != null)
+            {
+                hongo.TakeDamage(damage);
+            }
+
+            Destroy(gameObject);
         }
-        else if (collision.gameObject.CompareTag("Boss"))
+        else if (other.CompareTag("Boss"))
         {
-            Boss boss = collision.gameObject.GetComponent<Boss>();
+            Boss boss = other.GetComponent<Boss>();
             if (boss != null)
             {
                 boss.TakeDamage(damage);
@@ -26,10 +38,14 @@ public class BulletDamage : MonoBehaviour
             Destroy(gameObject); // Destruir bala
         }
         // 2. Si choca con pared o suelo, solo destruirse
-        else if (!collision.gameObject.CompareTag("Player"))
+        else if (!other.CompareTag("Player"))
         {
-            // El !Tag("Player") evita que la bala se destruya al salir del arma si choca con el propio jugador por error
             Destroy(gameObject);
         }
+    }
+    void Start()
+    {
+        PlayerMovement p = FindFirstObjectByType<PlayerMovement>();
+        if (p != null) damage += p.bonusDanio;
     }
 }

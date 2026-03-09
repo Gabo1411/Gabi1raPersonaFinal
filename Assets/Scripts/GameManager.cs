@@ -45,7 +45,7 @@ public class GameManager : MonoBehaviour
         if (scoreText != null) scoreText.gameObject.SetActive(true);
 
         if (portalSalida != null) portalSalida.SetActive(false);
-    }
+    } 
 
     void Update()
     {
@@ -156,7 +156,7 @@ public class GameManager : MonoBehaviour
         Enemy[] enemigosVivos = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
         foreach (Enemy enemigo in enemigosVivos)
         {
-            enemigo.ClearFromMap();
+            enemigo.TakeDamage(999);
         }
 
         if (escotillaNivel != null)
