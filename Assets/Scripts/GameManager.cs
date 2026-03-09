@@ -231,7 +231,14 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
+        // 1. Restaurar el tiempo
         Time.timeScale = 1f;
+
+        // 2. Encender la UI de inmediato por si las dudas
+        if (gameplayHUD != null) gameplayHUD.SetActive(true);
+        if (scoreText != null) scoreText.gameObject.SetActive(true);
+
+        // 3. Recargar escena
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 

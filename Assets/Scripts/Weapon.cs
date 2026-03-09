@@ -24,47 +24,43 @@ public class Weapon : MonoBehaviour
 
     // Recarga
     public float reloadTime;
-    public int magazineSize; // Asegurate en el Inspector que esto NO sea 0
+    public int magazineSize;
     public int bulletsLeft;
     public bool isReloading;
 
     public Vector3 spawnPosition;
     public Vector3 spawnRotation;
 
+    // --- NUEVO SEGURO PARA LA UI ---
+    private bool uiConectada = false;
+
     private void Awake()
     {
         readytoFire = true;
         animator = GetComponent<Animator>();
-        // Quitamos la inicialización de balas de aquí y la pasamos a Start
     }
 
     private void Start()
     {
-        // --- INICIO DEL PARCHE DE SEGURIDAD ---
-        // Si por alguna razón el cargador llega como 0, lo forzamos a 30.
         if (magazineSize <= 0)
         {
             magazineSize = 30;
             Debug.Log("¡Cargador corregido por código! Se forzó a 30.");
         }
-        // --- FIN DEL PARCHE ---
 
         bulletsLeft = magazineSize;
         isReloading = false;
-
-        UpdateAmmoUI();
+        uiConectada = false; // Reiniciamos el seguro
     }
 
     void Update()
     {
-        // Actualizar UI constantemente
-        UpdateAmmoUI();
-
-        // Lógica de disparo vacía para ahorrar espacio visual aquí...
-        // (Mantén tu lógica de Input y disparo original aquí abajo)
-
-        // ... PEGA AQUÍ TU LÓGICA DE DISPARO DEL SCRIPT ANTERIOR ...
-        // Si la borraste, avísame y te la paso completa de nuevo.
+        // --- SEGURO: Apenas detecte el nuevo AmmoManager al reiniciar, actualiza la pantalla ---
+        if (!uiConectada && AmmoManager.instance != null && AmmoManager.instance.ammoDisplay != null)
+        {
+            UpdateAmmoUI();
+            uiConectada = true; // Lo apaga para no consumir recursos
+        }
 
         // Arma automática: mantener presionado para disparar
         isFiring = Input.GetMouseButton(0);
@@ -73,13 +69,13 @@ public class Weapon : MonoBehaviour
         {
             FireWeapon();
         }
+
         if (Input.GetKeyDown(KeyCode.R) && bulletsLeft < magazineSize && isReloading == false)
         {
             Reload();
         }
     }
 
-    // Función auxiliar para actualizar UI sin repetir código
     void UpdateAmmoUI()
     {
         if (AmmoManager.instance != null && AmmoManager.instance.ammoDisplay != null)
@@ -92,10 +88,12 @@ public class Weapon : MonoBehaviour
     {
         isReloading = true;
         Invoke("FinishReloading", reloadTime);
+
         if (SoundManager.instance != null && SoundManager.instance.reloadM107 != null)
         {
             SoundManager.instance.reloadM107.PlayOneShot(SoundManager.instance.reloadM107.clip);
         }
+
         if (animator != null) animator.SetTrigger("Reload");
     }
 
@@ -103,6 +101,7 @@ public class Weapon : MonoBehaviour
     {
         bulletsLeft = magazineSize;
         isReloading = false;
+        UpdateAmmoUI();
     }
 
     private void FireWeapon()
@@ -110,6 +109,7 @@ public class Weapon : MonoBehaviour
         if (isReloading || bulletsLeft <= 0) return;
 
         bulletsLeft--;
+        UpdateAmmoUI();
 
         if (muzzleEffect != null) muzzleEffect.GetComponent<ParticleSystem>().Play();
         if (animator != null) animator.SetTrigger("RECOIL");
@@ -125,7 +125,7 @@ public class Weapon : MonoBehaviour
 
         GameObject bullet = Instantiate(bulletPrefab, bulletSpawn.position, Quaternion.identity);
         bullet.transform.forward = shootingDirection;
-        bullet.GetComponent<Rigidbody>().linearVelocity = shootingDirection * bulletSpeed; // Actualizado a linearVelocity (Unity 6/2023+) o velocity
+        bullet.GetComponent<Rigidbody>().linearVelocity = shootingDirection * bulletSpeed;
 
         StartCoroutine(DestroyBulletAfterTime(bullet, bulletPrefabLifetime));
 
@@ -147,12 +147,14 @@ public class Weapon : MonoBehaviour
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         RaycastHit hit;
         Vector3 targetPoint;
+
         if (Physics.Raycast(ray, out hit)) targetPoint = hit.point;
         else targetPoint = ray.GetPoint(100);
 
         Vector3 direction = targetPoint - bulletSpawn.position;
         float x = UnityEngine.Random.Range(-spreadIntensity, spreadIntensity);
         float y = UnityEngine.Random.Range(-spreadIntensity, spreadIntensity);
+
         return direction + new Vector3(x, y, 0);
     }
 

@@ -814,14 +814,14 @@ RectTransform:
   m_GameObject: {fileID: 70482926}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 6.108083, y: 3.2953207, z: 3.8626466}
+  m_LocalScale: {x: 6.108083, y: 3.7490864, z: 3.8626466}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 638493608}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -25, y: 7}
+  m_AnchoredPosition: {x: -25, y: 24}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &70482928
@@ -3460,7 +3460,7 @@ MonoBehaviour:
   clipMuerte: {fileID: 8300000, guid: 0eb49b6b9604e5f46a63d00e9d0dad24, type: 3}
   tiempoEntreCiclos: 4
   esperaAperturaBoca: 0.5
-  balasRafaga: 5
+  balasRafaga: 10
   cadenciaRafaga: 0.15
   duracionMetralladora: 5
   seriesDeTriangulos: 6
@@ -3576,7 +3576,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 4a684ee403fe3a54397e6083ec43ae19, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 0.325
+  m_Volume: 0.2
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -6051,8 +6051,8 @@ Transform:
   - {fileID: 1658713576}
   - {fileID: 283614148}
   - {fileID: 808108643}
-  - {fileID: 1499457117}
   - {fileID: 7726102856758590328}
+  - {fileID: 1499457117}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &480408515
@@ -7700,67 +7700,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 562126263}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1001 &562258643
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 1583086087258897404, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_Name
-      value: Bottle_Endurance
-      objectReference: {fileID: 0}
-    - target: {fileID: 2699966641256667154, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: sonidoRecogida
-      value: 
-      objectReference: {fileID: 8300000, guid: 9ae3496bcbb4a474382cab179e76d962, type: 3}
-    - target: {fileID: 5902196671283253368, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1743.085
-      objectReference: {fileID: 0}
-    - target: {fileID: 5902196671283253368, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5902196671283253368, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 507.95825
-      objectReference: {fileID: 0}
-    - target: {fileID: 5902196671283253368, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5902196671283253368, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5902196671283253368, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5902196671283253368, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5902196671283253368, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5902196671283253368, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5902196671283253368, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
 --- !u!4 &562843477 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4687182150707669800, guid: 166b92b7222fe8344a671615701d3657, type: 3}
@@ -10296,67 +10235,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 283614148}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &756648491
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 2734075823101984088, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: sonidoRecogida
-      value: 
-      objectReference: {fileID: 8300000, guid: 9ae3496bcbb4a474382cab179e76d962, type: 3}
-    - target: {fileID: 5277414661472132187, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_Name
-      value: Bottle_Mana
-      objectReference: {fileID: 0}
-    - target: {fileID: 6011190700925337384, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1743.085
-      objectReference: {fileID: 0}
-    - target: {fileID: 6011190700925337384, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6011190700925337384, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 507.95825
-      objectReference: {fileID: 0}
-    - target: {fileID: 6011190700925337384, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6011190700925337384, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6011190700925337384, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6011190700925337384, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6011190700925337384, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6011190700925337384, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6011190700925337384, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
 --- !u!4 &769398315 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4687182150707669800, guid: 166b92b7222fe8344a671615701d3657, type: 3}
@@ -15241,7 +15119,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -110, y: -142}
+  m_AnchoredPosition: {x: -150, y: -182}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1071591783
@@ -16314,7 +16192,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 603adf7f861b0a24584dbe8db3196eca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  targetScore: 10
+  targetScore: 250
   scoreText: {fileID: 175621179}
   winPanel: {fileID: 1031907988}
   losePanel: {fileID: 1996894704}
@@ -16733,8 +16611,8 @@ MonoBehaviour:
   Health: 100
   bonusDanio: 0
   sonidoDash: {fileID: 8300000, guid: 898a754d7f0bf6c4cb4ba5b4d8711576, type: 3}
-  fuenteDash: {fileID: 0}
-  clipDash: {fileID: 0}
+  fuenteDash: {fileID: 1225177124}
+  clipDash: {fileID: 8300000, guid: 898a754d7f0bf6c4cb4ba5b4d8711576, type: 3}
   groundCheck: {fileID: 2072569023}
   groundDistance: 0.4
   groundMask:
@@ -16768,8 +16646,8 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_Resource: {fileID: 8300000, guid: 898a754d7f0bf6c4cb4ba5b4d8711576, type: 3}
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -19463,67 +19341,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3b7501cf91abe9c48958e7862c1799ef, type: 3}
---- !u!1001 &1468539311
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 2945837135294482389, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_Name
-      value: Bottle_Health
-      objectReference: {fileID: 0}
-    - target: {fileID: 3916146996313500211, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1743.085
-      objectReference: {fileID: 0}
-    - target: {fileID: 3916146996313500211, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3916146996313500211, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 507.95825
-      objectReference: {fileID: 0}
-    - target: {fileID: 3916146996313500211, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3916146996313500211, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3916146996313500211, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3916146996313500211, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3916146996313500211, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3916146996313500211, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3916146996313500211, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7927601499173704437, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
-      propertyPath: sonidoRecogida
-      value: 
-      objectReference: {fileID: 8300000, guid: 9ae3496bcbb4a474382cab179e76d962, type: 3}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
 --- !u!1001 &1469404964
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24066,7 +23883,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 3d9929f801f029643959e6efd3639412, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 0.104
+  m_Volume: 0.056
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -24290,7 +24107,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 3cce1fbcf92f7c044b55db63d72310b3, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 0.104
+  m_Volume: 0.171
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -27212,7 +27029,7 @@ GameObject:
   - component: {fileID: 1909287695}
   - component: {fileID: 1909287694}
   m_Layer: 0
-  m_Name: AudioManager
+  m_Name: Musica
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -27229,9 +27046,9 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: 8a9bbb6abce0c204b80f818c308b22d5, type: 3}
+  m_Resource: {fileID: 8300000, guid: 1e2632e0a9f1a2644b1b324be43bec91, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.209
+  m_Volume: 0.25
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -27240,7 +27057,7 @@ AudioSource:
   Priority: 128
   DopplerLevel: 1
   MinDistance: 1
-  MaxDistance: 500
+  MaxDistance: 250
   Pan2D: 0
   rolloffMode: 0
   BypassEffects: 0
@@ -62147,6 +61964,3 @@ SceneRoots:
   - {fileID: 1773387475}
   - {fileID: 1554854586}
   - {fileID: 477165824}
-  - {fileID: 756648491}
-  - {fileID: 1468539311}
-  - {fileID: 562258643}

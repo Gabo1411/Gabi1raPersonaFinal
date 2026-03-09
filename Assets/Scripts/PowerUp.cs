@@ -6,33 +6,42 @@ public class PowerUp : MonoBehaviour
     public enum TipoPocion { Vida, Danio, Velocidad }
     public TipoPocion tipo;
 
-    [Header("Sonido")]
-    public AudioClip sonidoRecogida;
+    [Header("Referencia de Sonido")]
+    public AudioSource fuenteRecogida; // Arrastra el AudioSource de la poción aquí
 
     [Header("Ajustes")]
-    public float valorEfecto = 20f; // Para Vida, es la cantidad de salud a recuperar. Para Daño y Velocidad, es el aumento temporal.
-    public float duracionEfecto = 5f; // Solo se usará para Daño y Velocidad
+    public float valorEfecto = 20f;
+    public float duracionEfecto = 5f;
+
+    // Bandera de seguridad para que no suene dos veces si el jugador la roza raro
+    private bool yaRecogido = false;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("Player") && !yaRecogido)
         {
+            yaRecogido = true;
+
+            // 1. REPRODUCIR SONIDO
+            if (fuenteRecogida != null)
+            {
+                fuenteRecogida.Play();
+            }
+
+            // 2. APLICAR EL EFECTO
             AplicarEfecto(other.gameObject);
 
-            if (sonidoRecogida != null)
-            {
-                // Usamos PlayClipAtPoint para que el sonido no se corte al destruir la botella
-                AudioSource.PlayClipAtPoint(sonidoRecogida, transform.position);
-            }
-            // Si es vida, destruimos al instante. Si es temporal, ocultamos y esperamos.
+            // 3. OCULTAR LA POCIÓN AL INSTANTE
+            // Se apaga el modelo y el collider para que parezca que desapareció
+            DesactivarObjeto();
+
+            // 4. DESTRUCCIÓN RETRASADA
             if (tipo == TipoPocion.Vida)
             {
-                Destroy(gameObject);
+                // Espera 2 segundos para que el sonido termine antes de destruir el objeto
+                Destroy(gameObject, 2f);
             }
-            else
-            {
-                StartCoroutine(DesactivarVisualmente());
-            }
+            // (Si es de daño o velocidad, las corrutinas de abajo ya se encargan de destruirlo al final)
         }
     }
 
@@ -43,9 +52,7 @@ public class PowerUp : MonoBehaviour
         switch (tipo)
         {
             case TipoPocion.Vida:
-                // Curación instantánea
                 moveScript.Health = Mathf.Min(moveScript.Health + (int)valorEfecto, moveScript.maxHealth);
-                Debug.Log("¡Vida recuperada al instante!");
                 break;
 
             case TipoPocion.Velocidad:
@@ -71,16 +78,17 @@ public class PowerUp : MonoBehaviour
     {
         PlayerMovement p = player.GetComponent<PlayerMovement>();
         p.bonusDanio = (int)valorEfecto;
-        Debug.Log("¡Ataque potenciado!");
         yield return new WaitForSeconds(duracionEfecto);
         p.bonusDanio = 0;
         Destroy(gameObject);
     }
 
-    IEnumerator DesactivarVisualmente()
+    void DesactivarObjeto()
     {
+        // Apaga la colisión
         GetComponent<Collider>().enabled = false;
+
+        // Apaga todos los modelos 3D hijos (la botella en sí)
         foreach (Transform child in transform) child.gameObject.SetActive(false);
-        yield return null;
     }
 }

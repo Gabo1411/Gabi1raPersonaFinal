@@ -15,6 +15,9 @@ public class Enemy : MonoBehaviour
     public float cooldownAtaque = 1.5f;
     private float tiempoSiguienteAtaque;
 
+    [Header("Sonido de Muerte")]
+    public AudioClip clipMuerte;
+
     private NavMeshAgent agent;
     private Transform jugador;
     private Animator animator;
@@ -102,6 +105,11 @@ public class Enemy : MonoBehaviour
 
     void Die()
     {
+        if (clipMuerte != null)
+        {
+            AudioSource.PlayClipAtPoint(clipMuerte, transform.position);
+        }
+            
         GenerarParticulas();
         FindFirstObjectByType<GameManager>()?.AddScore(pointsValue);
 
