@@ -3,49 +3,60 @@ using UnityEngine;
 public class BulletDamage : MonoBehaviour
 {
     public int damage = 3;
+    public float lifetime = 3f;
 
-    // Usamos OnTriggerEnter y Collider other
-    private void OnTriggerEnter(Collider other)
+    private int baseDamage;
+    private float timeLeft;
+    private Rigidbody body;
+
+    void Awake()
     {
+        baseDamage = damage;
+        body = GetComponent<Rigidbody>();
+    }
 
-        if (other.GetComponent<BalaJefe>() != null) return;
+    void OnEnable()
+    {
+        timeLeft = lifetime;
+    }
 
-        // Si choca con un enemigo normal (Cactus)
-        if (other.CompareTag("Enemy"))
+    void Update()
+    {
+        timeLeft -= Time.deltaTime;
+        if (timeLeft <= 0f) PrefabPool.Release(gameObject);
+    }
+
+    // damageMultiplier escala el daño total (incluido el bonus de poción), p. ej. 0.8 con Disparo Continuo.
+    public void Launch(Vector3 direction, float speed, float damageMultiplier = 1f)
+    {
+        // El bonus de la poción se aplica al disparar, no al instanciar el prefab.
+        PlayerMovement player = FindFirstObjectByType<PlayerMovement>();
+        float total = (baseDamage + (player != null ? player.bonusDanio : 0)) * damageMultiplier;
+
+        // Redondeo probabilístico: el daño medio coincide con el valor exacto aunque sea fraccionario
+        int rolled = Mathf.FloorToInt(total);
+        if (Random.value < total - rolled) rolled++;
+        damage = Mathf.Max(1, rolled);
+
+        transform.forward = direction;
+        if (body != null)
         {
-            Enemy enemy = other.GetComponent<Enemy>();
-            if (enemy != null)
-            {
-                enemy.TakeDamage(damage);
-            }
-
-            // --- NUEVO: Tambi�n buscamos al Hongo ---
-            EnemyMushroom hongo = other.GetComponent<EnemyMushroom>();
-            if (hongo != null)
-            {
-                hongo.TakeDamage(damage);
-            }
-
-            Destroy(gameObject);
-        }
-        else if (other.CompareTag("Boss"))
-        {
-            Boss boss = other.GetComponent<Boss>();
-            if (boss != null)
-            {
-                boss.TakeDamage(damage);
-            }
-            Destroy(gameObject); // Destruir bala
-        }
-        // 2. Si choca con pared o suelo, solo destruirse
-        else if (!other.CompareTag("Player"))
-        {
-            Destroy(gameObject);
+            body.angularVelocity = Vector3.zero;
+            body.linearVelocity = direction * speed;
         }
     }
-    void Start()
+
+    private void OnTriggerEnter(Collider other)
     {
-        PlayerMovement p = FindFirstObjectByType<PlayerMovement>();
-        if (p != null) damage += p.bonusDanio;
+        if (other.GetComponent<BalaJefe>() != null) return;
+        if (other.CompareTag("Player")) return;
+
+        if (other.CompareTag("Enemy") || other.CompareTag("Boss"))
+        {
+            IDamageable target = other.GetComponentInParent<IDamageable>();
+            if (target != null) target.TakeDamage(damage);
+        }
+
+        PrefabPool.Release(gameObject);
     }
 }

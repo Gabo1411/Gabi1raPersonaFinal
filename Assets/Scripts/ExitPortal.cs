@@ -4,16 +4,8 @@ public class ExitPortal : MonoBehaviour
 {
     private void OnTriggerEnter(Collider other)
     {
-        // Verificamos si el que tocó el portal es el jugador
-        if (other.CompareTag("Player"))
-        {
-            GameManager manager = FindFirstObjectByType<GameManager>();
-            if (manager != null)
-            {
-                manager.WinGame(); // Llamamos a la victoria
-            }
+        if (!other.CompareTag("Player")) return;
 
-            Debug.Log("¡El jugador ha escapado por el portal!");
-        }
+        if (GameManager.Instance != null) GameManager.Instance.WinGame();
     }
 }

@@ -100,9 +100,10 @@ MonoBehaviour:
   health: 15
   pointsValue: 0
   damage: 10
-  particulasMuerte: {fileID: 211157791665972458, guid: 3cdd2b987abf32e45aa24e7b3fe63b13, type: 3}
   distanciaAtaque: 1.8
   cooldownAtaque: 1.5
+  momentoGolpe: 0.5
+  particulasMuerte: {fileID: 211157791665972458, guid: 3cdd2b987abf32e45aa24e7b3fe63b13, type: 3}
   clipMuerte: {fileID: 0}
 --- !u!195 &2770982581403911228
 NavMeshAgent:
@@ -143,6 +144,10 @@ MonoBehaviour:
   - {fileID: 2945837135294482389, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
   - {fileID: 1583086087258897404, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
   probabilidadDrop: 100
+  probabilidadDisparoContinuo: 8
+  mejoradas: 1
+  pocionesMejoradas: []
+  pocionDisparoContinuo: {fileID: 7327056093914053785, guid: 848c7a08cecc8544bbeae8c616a7dd5f, type: 3}
 --- !u!1001 &2883316095665763969
 PrefabInstance:
   m_ObjectHideFlags: 0

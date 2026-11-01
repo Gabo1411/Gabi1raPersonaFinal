@@ -4,48 +4,49 @@ public class BalaJefe : MonoBehaviour
 {
     public float velocidad = 20f;
     public int damage = 10;
-    public float tiempoDeVida = 4f; // Se destruye sola a los 4 segundos
+    public float tiempoDeVida = 4f;
 
-    void Start()
+    private float timeLeft;
+    private Rigidbody body;
+
+    void Awake()
     {
-        Destroy(gameObject, tiempoDeVida);
+        // La bala se mueve por Translate: la gravedad del Rigidbody solo la desviarÃ­a hacia abajo
+        body = GetComponent<Rigidbody>();
+        if (body != null) body.useGravity = false;
+    }
+
+    void OnEnable()
+    {
+        timeLeft = tiempoDeVida;
+
+        // Al reutilizar la bala desde el pool no debe conservar la velocidad de su uso anterior
+        if (body != null)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
     }
 
     void Update()
     {
-        // Mueve la bala hacia adelante constantemente
         transform.Translate(Vector3.forward * velocidad * Time.deltaTime);
+
+        timeLeft -= Time.deltaTime;
+        if (timeLeft <= 0f) PrefabPool.Release(gameObject);
     }
 
-    // Usamos OnTriggerEnter y Collider other
     private void OnTriggerEnter(Collider other)
     {
-        // Si tocamos la bala del jugador, la ignoramos y cortamos la función
+        // Las balas del jugador no la detienen
         if (other.GetComponent<BulletDamage>() != null) return;
 
-        // 1. Si la bala choca con el jugador...
         if (other.CompareTag("Player"))
         {
             PlayerMovement player = other.GetComponent<PlayerMovement>();
-            if (player != null)
-            {
-                player.Health -= damage;
-                Debug.Log("¡El jefe te golpeó! Vida restante: " + player.Health);
-            }
-            if (player.Health <= 0)
-            {
-            player.Health = 0;
-            // Avisamos al GameManager que el jefe nos ganó
-            FindFirstObjectByType<GameManager>()?.PlayerDied();
-            }
+            if (player != null) player.TakeDamage(damage);
         }
-        
-        
 
-        // 2. Al chocar con cualquier cosa que NO sea el jefe, se destruye
-        if (!other.CompareTag("Boss"))
-        {
-            Destroy(gameObject);
-        }
+        if (!other.CompareTag("Boss")) PrefabPool.Release(gameObject);
     }
 }

@@ -1,10 +1,10 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
 
-public class Boss : MonoBehaviour
+public class Boss : MonoBehaviour, IDamageable
 {
-    [Header("Estadísticas y UI")]
+    [Header("EstadÃ­sticas y UI")]
     public int maxHealth = 100;
     private int currentHealth;
     public Image barraDeVida;
@@ -17,16 +17,16 @@ public class Boss : MonoBehaviour
     private Animator animator;
 
     [Header("Fuentes de Sonido (AudioSources)")]
-    public AudioSource fuenteTaunt;    // Arrastra aquí el AudioSource para el rugido
-    public AudioSource fuenteDisparo;  // Arrastra aquí el AudioSource para los disparos
-    public AudioSource fuenteMuerte;   // Arrastra aquí el AudioSource para la muerte
+    public AudioSource fuenteTaunt;
+    public AudioSource fuenteDisparo;
+    public AudioSource fuenteMuerte;
 
     [Header("Clips de Audio")]
     public AudioClip clipTaunt;
     public AudioClip clipDisparo;
     public AudioClip clipMuerte;
 
-    [Header("Configuración IA")]
+    [Header("ConfiguraciÃ³n IA")]
     public float tiempoEntreCiclos = 4.0f;
     public float esperaAperturaBoca = 0.5f;
     private bool estaMuerto = false;
@@ -44,15 +44,21 @@ public class Boss : MonoBehaviour
         currentHealth = maxHealth;
         animator = GetComponentInChildren<Animator>();
         ActualizarUI();
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+
+        PlayerMovement playerMovement = FindFirstObjectByType<PlayerMovement>();
+        if (playerMovement != null) player = playerMovement.transform;
+
         StartCoroutine(CicloDeIA());
     }
 
     void Update()
     {
         if (player == null || estaMuerto) return;
-        Vector3 dir = (player.position - transform.position);
+
+        Vector3 dir = player.position - transform.position;
         dir.y = 0;
+        if (dir.sqrMagnitude < 0.0001f) return;
+
         transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), Time.deltaTime * 3f);
     }
 
@@ -65,8 +71,7 @@ public class Boss : MonoBehaviour
 
             if (animator != null) animator.SetTrigger("Taunt");
 
-            // --- REPRODUCIR RUGIDO ---
-            if (fuenteTaunt != null && clipTaunt != null) fuenteTaunt.PlayOneShot(clipTaunt);
+            Sfx.Play(fuenteTaunt, clipTaunt);
 
             yield return new WaitForSeconds(esperaAperturaBoca);
 
@@ -113,37 +118,39 @@ public class Boss : MonoBehaviour
 
     void InstanciarBala(Vector3 pos, bool seguir)
     {
-        if (estaMuerto || balaPrefab == null) return;
+        if (estaMuerto || balaPrefab == null || puntoDisparo == null) return;
 
-        // --- REPRODUCIR DISPARO ---
-        if (fuenteDisparo != null && clipDisparo != null) fuenteDisparo.PlayOneShot(clipDisparo);
+        Sfx.Play(fuenteDisparo, clipDisparo);
 
-        GameObject b = Instantiate(balaPrefab, pos, puntoDisparo.rotation);
-        if (seguir) b.transform.LookAt(player.position + Vector3.up * 1.2f);
+        GameObject bala = PrefabPool.Get(balaPrefab, pos, puntoDisparo.rotation);
+        if (seguir && player != null) bala.transform.LookAt(player.position + Vector3.up * 1.2f);
     }
 
     public void TakeDamage(int damage)
     {
         if (estaMuerto) return;
+
         currentHealth -= damage;
         ActualizarUI();
         if (currentHealth <= 0) Die();
     }
 
-    void ActualizarUI() => barraDeVida.fillAmount = (float)currentHealth / maxHealth;
+    void ActualizarUI()
+    {
+        if (barraDeVida != null) barraDeVida.fillAmount = Mathf.Clamp01((float)currentHealth / maxHealth);
+    }
 
     void Die()
     {
         estaMuerto = true;
         StopAllCoroutines();
 
-        // --- REPRODUCIR MUERTE ---
-        if (fuenteMuerte != null && clipMuerte != null) fuenteMuerte.PlayOneShot(clipMuerte);
+        Sfx.Play(fuenteMuerte, clipMuerte);
 
         if (animator != null) animator.SetTrigger("Die");
         if (particulasMuerte != null) Instantiate(particulasMuerte, transform.position, Quaternion.identity);
 
-        FindFirstObjectByType<GameManager>()?.BossDefeated();
+        if (GameManager.Instance != null) GameManager.Instance.BossDefeated();
         Destroy(gameObject, 2.5f);
     }
 }

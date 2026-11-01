@@ -5,16 +5,16 @@ public class HealthBar : MonoBehaviour
 {
     public Image BarraVida;
     private PlayerMovement playerMovement;
-    private float maxHealth;
+
     void Start()
     {
-        playerMovement = GameObject.Find("Player").GetComponent<PlayerMovement>();
-        maxHealth = playerMovement.Health;
+        playerMovement = FindFirstObjectByType<PlayerMovement>();
     }
 
-    // Update is called once per frame
     void Update()
     {
-        BarraVida.fillAmount = (float)playerMovement.Health / maxHealth;
+        if (playerMovement == null || BarraVida == null) return;
+
+        BarraVida.fillAmount = Mathf.Clamp01((float)playerMovement.Health / playerMovement.maxHealth);
     }
 }

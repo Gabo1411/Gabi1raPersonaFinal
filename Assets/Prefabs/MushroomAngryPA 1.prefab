@@ -472,6 +472,7 @@ GameObject:
   - component: {fileID: 882141771548916677}
   - component: {fileID: 2933811834241442000}
   - component: {fileID: 6550608195764870457}
+  - component: {fileID: 7340196202134800001}
   m_Layer: 9
   m_Name: MushroomAngryPA 1
   m_TagString: Enemy
@@ -575,13 +576,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMushroom
   health: 25
-  damage: 5
   pointsValue: 0
+  damage: 5
   distanciaAtaque: 4
   cooldownAtaque: 1.2
-  particulasMovimiento: {fileID: 838018624278626732, guid: 93871bd7256bf2d4ebff556f14c9d2b5, type: 3}
+  momentoGolpe: 0.5
   particulasMuerte: {fileID: 211157791665972458, guid: 3cdd2b987abf32e45aa24e7b3fe63b13, type: 3}
   clipMuerte: {fileID: 0}
+  particulasMovimiento: {fileID: 838018624278626732, guid: 93871bd7256bf2d4ebff556f14c9d2b5, type: 3}
 --- !u!54 &6550608195764870457
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -609,6 +611,30 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &7340196202134800001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5473100450477104693}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 584709c19f511e7439216b11c3754f48, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LootTable
+  pociones:
+  - {fileID: 5277414661472132187, guid: f39312ba27ca1624583a8c5104488d6e, type: 3}
+  - {fileID: 2945837135294482389, guid: 854c3608a30e1954984e28d217c4bd00, type: 3}
+  - {fileID: 1583086087258897404, guid: 3bc42378f8acab74d9dad8cb922a83b7, type: 3}
+  probabilidadDrop: 50
+  probabilidadDisparoContinuo: 5
+  mejoradas: 1
+  pocionesMejoradas:
+  - {fileID: 3432513761381057350, guid: 18e3a82a9a4a91d40af7b1e8483489dc, type: 3}
+  - {fileID: 3864390872262318425, guid: 816ac3f226ff7b44f9e68efbaaf70967, type: 3}
+  - {fileID: 7711356906543390869, guid: e749fd91f16bc6b409a0add4305b8e50, type: 3}
+  pocionDisparoContinuo: {fileID: 7327056093914053785, guid: 848c7a08cecc8544bbeae8c616a7dd5f, type: 3}
 --- !u!1 &5726356285449951807
 GameObject:
   m_ObjectHideFlags: 0

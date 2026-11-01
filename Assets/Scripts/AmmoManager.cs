@@ -3,14 +3,13 @@ using UnityEngine;
 
 public class AmmoManager : MonoBehaviour
 {
-    public static AmmoManager instance { get; set; }
+    public static AmmoManager instance { get; private set; }
 
-    // UI
     public TextMeshProUGUI ammoDisplay;
 
     private void Awake()
     {
-        // Al recargar la escena, esta nueva instancia sobreescribe a la vieja sin problemas
+        // Al recargar la escena, la instancia nueva reemplaza a la anterior
         instance = this;
     }
 }

@@ -1,27 +1,35 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using TMPro;
 using UnityEngine.UI;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
-    [Header("Configuración de Puntuación")]
+    public static GameManager Instance { get; private set; }
+
+    [Header("ConfiguraciÃ³n de PuntuaciÃ³n")]
     public int targetScore = 100;
     private int currentScore = 0;
 
-    [Header("UI References")]
+    // Elementos de la interfaz antigua de la escena. Se ocultan: ahora la interfaz se construye en
+    // HudView (juego) y GameMenus (pausa, victoria y derrota).
+    [Header("Interfaz antigua (oculta)")]
     public TMP_Text scoreText;
     public GameObject winPanel;
     public GameObject losePanel;
     public GameObject pausePanel;
     public GameObject controlsPanel;
-
-    [Header("Contenedor de Interfaz (NUEVO)")]
-    public GameObject gameplayHUD; // Aquí agruparemos Vida, Balas y Dash
-
-    [Header("UI Dash")]
-    public PlayerMovement playerScript;
+    public GameObject gameplayHUD;
     public Image dashFillImage;
+
+    [Header("Jugador")]
+    public PlayerMovement playerScript;
+
+    [Header("Sonido")]
+    [Tooltip("Se reproduce al eliminar a un enemigo menor (no al jefe).")]
+    public AudioClip killSound;
 
     [Header("Elementos del Nivel")]
     public TrapDoorDemo escotillaNivel;
@@ -30,51 +38,95 @@ public class GameManager : MonoBehaviour
     private bool gameEnded = false;
     private bool scoreReached = false;
     private bool isPaused = false;
+    private bool scoreVisible = true;
+    private float elapsedTime = 0f;
+    private AudioSource uiAudio;
+    private GameMenus menus;
+
+    public bool GameEnded => gameEnded;
+    public int CurrentScore => currentScore;
+    public bool ScoreVisible => scoreVisible;
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
 
     void Start()
     {
-        UpdateScoreUI();
+        Time.timeScale = 1f;
 
-        if (winPanel != null) winPanel.SetActive(false);
-        if (losePanel != null) losePanel.SetActive(false);
-        if (pausePanel != null) pausePanel.SetActive(false);
-        if (controlsPanel != null) controlsPanel.SetActive(false);
+        HideLegacyUI();
 
-        // Nos aseguramos de que la UI de juego esté visible al empezar
-        if (gameplayHUD != null) gameplayHUD.SetActive(true);
-        if (scoreText != null) scoreText.gameObject.SetActive(true);
+        PlayerMovement player = playerScript != null ? playerScript : FindFirstObjectByType<PlayerMovement>();
+        HudView.Create(player);
+        BuffHUD.Create(player);
+        menus = GameMenus.Create(this);
 
-        if (portalSalida != null) portalSalida.SetActive(false);
-    } 
+        SetActiveIfAssigned(portalSalida, false);
+    }
+
+    // Oculta los elementos de la interfaz original que ahora reemplaza HudView y GameMenus
+    void HideLegacyUI()
+    {
+        SetActiveIfAssigned(winPanel, false);
+        SetActiveIfAssigned(losePanel, false);
+        SetActiveIfAssigned(pausePanel, false);
+        SetActiveIfAssigned(controlsPanel, false);
+        SetActiveIfAssigned(scoreText != null ? scoreText.gameObject : null, false);
+        SetActiveIfAssigned(dashFillImage != null ? dashFillImage.gameObject : null, false);
+
+        HealthBar healthBar = FindFirstObjectByType<HealthBar>();
+        if (healthBar != null) healthBar.gameObject.SetActive(false);
+
+        if (AmmoManager.instance != null && AmmoManager.instance.ammoDisplay != null)
+        {
+            Canvas ammoCanvas = AmmoManager.instance.ammoDisplay.GetComponentInParent<Canvas>();
+            if (ammoCanvas != null && !ammoCanvas.isRootCanvas) ammoCanvas.gameObject.SetActive(false);
+        }
+    }
 
     void Update()
     {
-        if (playerScript != null && dashFillImage != null)
-        {
-            dashFillImage.fillAmount = playerScript.GetDashCooldownProgress();
+        if (!isPaused && !gameEnded) elapsedTime += Time.deltaTime;
 
-            if (dashFillImage.fillAmount >= 1f)
-            {
-                dashFillImage.color = new Color(1f, 1f, 1f, 0.8f);
-            }
-            else
-            {
-                dashFillImage.color = new Color(1f, 1f, 1f, 0.3f);
-            }
-        }
+        bool escape = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
+        if (!escape || gameEnded || OptionsPanel.BlocksInput || ControlsPanel.BlocksInput) return;
 
-        if (Input.GetKeyDown(KeyCode.Escape) && !gameEnded)
+        if (isPaused) ResumeGame();
+        else PauseGame();
+    }
+
+    public void PlayKillSound()
+    {
+        if (killSound == null) return;
+
+        if (uiAudio == null)
         {
-            if (isPaused)
-            {
-                if (controlsPanel != null) controlsPanel.SetActive(false);
-                ResumeGame();
-            }
-            else
-            {
-                PauseGame();
-            }
+            uiAudio = gameObject.AddComponent<AudioSource>();
+            uiAudio.playOnAwake = false;
+            uiAudio.spatialBlend = 0f; // 2D: suena igual sin importar dÃ³nde muera el enemigo
         }
+        uiAudio.PlayOneShot(killSound, Sfx.Volume);
+    }
+
+    // ---------- Pausa y menÃºs ----------
+
+    public void OpenOptions()
+    {
+        menus.ShowPause(false);
+        OptionsPanel.Open(() => menus.ShowPause(isPaused));
+    }
+
+    public void OpenControls()
+    {
+        menus.ShowPause(false);
+        ControlsPanel.Open(() => menus.ShowPause(isPaused));
     }
 
     public void PauseGame()
@@ -82,7 +134,7 @@ public class GameManager : MonoBehaviour
         isPaused = true;
         Time.timeScale = 0f;
 
-        if (pausePanel != null) pausePanel.SetActive(true);
+        menus.ShowPause(true);
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -93,157 +145,99 @@ public class GameManager : MonoBehaviour
         isPaused = false;
         Time.timeScale = 1f;
 
-        if (pausePanel != null) pausePanel.SetActive(false);
-        if (controlsPanel != null) controlsPanel.SetActive(false);
+        menus.HideAll();
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    public void OpenControls()
-    {
-        if (pausePanel != null) pausePanel.SetActive(false);
-        if (controlsPanel != null) controlsPanel.SetActive(true);
-    }
-
-    public void CloseControls()
-    {
-        if (controlsPanel != null) controlsPanel.SetActive(false);
-        if (pausePanel != null) pausePanel.SetActive(true);
-    }
+    // ---------- Puntaje y progreso ----------
 
     public void AddScore(int points)
     {
         if (gameEnded || scoreReached) return;
 
         currentScore += points;
-        UpdateScoreUI();
 
-        if (currentScore >= targetScore)
-        {
-            OnTargetScoreReached();
-        }
-    }
-
-    private void UpdateScoreUI()
-    {
-        if (scoreText != null)
-        {
-            scoreText.text = "Puntos: " + currentScore + " / " + targetScore;
-        }
+        if (currentScore >= targetScore) OnTargetScoreReached();
     }
 
     public void OcultarPuntaje()
     {
-        if (scoreText != null)
-        {
-            scoreText.gameObject.SetActive(false);
-        }
+        scoreVisible = false;
     }
 
     private void OnTargetScoreReached()
     {
         scoreReached = true;
-        Debug.Log("¡Puntaje alcanzado! Limpiando el mapa y abriendo escotilla...");
 
-        EnemySpawner[] spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
-        foreach (EnemySpawner spawner in spawners)
+        foreach (EnemySpawner spawner in FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None))
         {
             spawner.StopSpawning();
         }
 
-        Enemy[] enemigosVivos = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
-        foreach (Enemy enemigo in enemigosVivos)
+        // Se recorre una copia porque matar enemigos modifica la lista original
+        foreach (EnemyBase enemy in new List<EnemyBase>(EnemyBase.Active))
         {
-            enemigo.TakeDamage(999);
+            enemy.Kill();
         }
 
-        if (escotillaNivel != null)
-        {
-            escotillaNivel.AbrirEscotilla();
-        }
+        if (escotillaNivel != null) escotillaNivel.AbrirEscotilla();
     }
 
     public void BossDefeated()
     {
-        Debug.Log("¡Jefe derrotado! Limpiando arena...");
-
-        // 1. Detener spawners (Ya lo tienes)
-        BossArenaSpawner[] spawners = FindObjectsByType<BossArenaSpawner>(FindObjectsSortMode.None);
-        foreach (BossArenaSpawner spawner in spawners)
+        foreach (BossArenaSpawner spawner in FindObjectsByType<BossArenaSpawner>(FindObjectsSortMode.None))
         {
             spawner.DetenerSpawner();
         }
 
-        // 2. Limpiar Cactus (Clase Enemy)
-        Enemy[] cactusVivos = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
-        foreach (Enemy cactus in cactusVivos)
+        // Los cactus desaparecen sin mÃ¡s y los hongos mueren con su animaciÃ³n y sonido
+        foreach (EnemyBase enemy in new List<EnemyBase>(EnemyBase.Active))
         {
-            cactus.ClearFromMap();
+            if (enemy is EnemyMushroom) enemy.Kill();
+            else enemy.ClearFromMap();
         }
 
-        // 3. NUEVO: Limpiar Hongos (Clase EnemyMushroom)
-        EnemyMushroom[] hongosVivos = FindObjectsByType<EnemyMushroom>(FindObjectsSortMode.None);
-        foreach (EnemyMushroom hongo in hongosVivos)
-        {
-            // Usamos TakeDamage con un número alto para activar su muerte normal
-            hongo.TakeDamage(999);
-        }
-
-        // 4. Activar portal
-        if (portalSalida != null) portalSalida.SetActive(true);
+        SetActiveIfAssigned(portalSalida, true);
     }
+
+    // ---------- Fin de la partida ----------
 
     public void PlayerDied()
     {
-        if (!gameEnded) LoseGame();
+        if (!gameEnded) EndGame(false);
     }
 
     public void WinGame()
     {
-        gameEnded = true;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        // Ocultamos la interfaz al ganar
-        if (gameplayHUD != null) gameplayHUD.SetActive(false);
-        if (scoreText != null) scoreText.gameObject.SetActive(false);
-
-        if (winPanel != null) winPanel.SetActive(true);
-        Time.timeScale = 0f;
+        if (!gameEnded) EndGame(true);
     }
 
-    void LoseGame()
+    void EndGame(bool win)
     {
         gameEnded = true;
-        Debug.Log("Game Over");
-
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // Ocultamos la interfaz al perder
-        if (gameplayHUD != null) gameplayHUD.SetActive(false);
-        if (scoreText != null) scoreText.gameObject.SetActive(false);
-
-        if (losePanel != null) losePanel.SetActive(true);
+        menus.HideAll();
+        menus.ShowResult(win, currentScore, targetScore, elapsedTime);
         Time.timeScale = 0f;
     }
 
     public void RestartGame()
     {
-        // 1. Restaurar el tiempo
         Time.timeScale = 1f;
-
-        // 2. Encender la UI de inmediato por si las dudas
-        if (gameplayHUD != null) gameplayHUD.SetActive(true);
-        if (scoreText != null) scoreText.gameObject.SetActive(true);
-
-        // 3. Recargar escena
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void QuitGame()
     {
         Application.Quit();
+    }
+
+    static void SetActiveIfAssigned(GameObject target, bool active)
+    {
+        if (target != null) target.SetActive(active);
     }
 }

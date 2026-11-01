@@ -2,42 +2,38 @@ using UnityEngine;
 
 public class BossArenaSpawner : MonoBehaviour
 {
-    [Header("Configuración")]
-    public GameObject[] enemigosPrefabs; // Pon aquí al Cactus y al Hongo
+    [Header("ConfiguraciÃ³n")]
+    public GameObject[] enemigosPrefabs; // Cactus y Hongo
     public float tiempoEntreSpawns = 6f;
     public float radioSpawn = 7f;
-    public int limiteEnemigosEnArena = 10; // ¡EL LÍMITE QUE PEDISTE!
+    public int limiteEnemigosEnArena = 10;
 
     private bool estaActivo = false;
 
     public void ActivarSpawner()
     {
-        if (!estaActivo)
-        {
-            estaActivo = true;
-            InvokeRepeating("SpawnAleatorio", 2f, tiempoEntreSpawns);
-        }
+        if (estaActivo) return;
+
+        estaActivo = true;
+        InvokeRepeating(nameof(SpawnAleatorio), 2f, tiempoEntreSpawns);
     }
 
     void SpawnAleatorio()
     {
-        // Contamos cuántos objetos con el Tag "Enemy" hay actualmente
-        int enemigosActuales = GameObject.FindGameObjectsWithTag("Enemy").Length;
+        if (enemigosPrefabs == null || enemigosPrefabs.Length == 0) return;
+        if (EnemyBase.AliveCount >= limiteEnemigosEnArena) return;
 
-        if (enemigosActuales < limiteEnemigosEnArena)
-        {
-            int indice = Random.Range(0, enemigosPrefabs.Length);
+        GameObject prefab = enemigosPrefabs[Random.Range(0, enemigosPrefabs.Length)];
 
-            Vector2 circulo = Random.insideUnitCircle * radioSpawn;
-            Vector3 posFinal = new Vector3(transform.position.x + circulo.x, transform.position.y, transform.position.z + circulo.y);
+        Vector2 circulo = Random.insideUnitCircle * radioSpawn;
+        Vector3 posFinal = new Vector3(transform.position.x + circulo.x, transform.position.y, transform.position.z + circulo.y);
 
-            Instantiate(enemigosPrefabs[indice], posFinal, Quaternion.identity);
-        }
+        Instantiate(prefab, posFinal, Quaternion.identity);
     }
 
     public void DetenerSpawner()
     {
-        CancelInvoke("SpawnAleatorio");
+        CancelInvoke(nameof(SpawnAleatorio));
         estaActivo = false;
     }
 }

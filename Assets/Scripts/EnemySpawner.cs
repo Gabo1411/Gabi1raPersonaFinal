@@ -8,24 +8,25 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
-        InvokeRepeating("Spawn", 0f, tiempoEntreSpawns);
+        InvokeRepeating(nameof(Spawn), 0f, tiempoEntreSpawns);
     }
 
     void Spawn()
     {
-        // Usamos un círculo 2D para calcular solo X y Z
+        // CÃ­rculo 2D para calcular solo X y Z; la altura es la del spawner
         Vector2 circuloAleatorio = Random.insideUnitCircle * radioSpawn;
 
         Vector3 lugarFinal = new Vector3(
             transform.position.x + circuloAleatorio.x,
-            transform.position.y, // AHORA USA LA ALTURA DEL SPAWNER
+            transform.position.y,
             transform.position.z + circuloAleatorio.y
         );
 
         Instantiate(enemigoPrefab, lugarFinal, Quaternion.identity);
     }
+
     public void StopSpawning()
     {
-        CancelInvoke("Spawn");
+        CancelInvoke(nameof(Spawn));
     }
 }

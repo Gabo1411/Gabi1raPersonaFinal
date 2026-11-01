@@ -1,16 +1,18 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
-public partial class FlashlightController : MonoBehaviour
+public class FlashlightController : MonoBehaviour
 {
-    public GameObject lightSource; // Arrastra aquí tu Spotlight
+    public GameObject lightSource;
     private bool isOn = true;
 
     void Update()
     {
-        // Detecta si presionas la tecla "F"
-        if (Input.GetKeyDown(KeyCode.F))
+        if (Keyboard.current == null || lightSource == null) return;
+
+        if (Keyboard.current.fKey.wasPressedThisFrame)
         {
-            isOn = !isOn; // Cambia el estado (si es true pasa a false y viceversa)
+            isOn = !isOn;
             lightSource.SetActive(isOn);
         }
     }

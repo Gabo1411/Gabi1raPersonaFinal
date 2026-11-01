@@ -1,18 +1,22 @@
-using System.Collections;
-using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class Weapon : MonoBehaviour
 {
     // Disparar
     public bool isFiring, readytoFire;
-    bool allowReset = true;
     public float shootingDelay = 0.5f;
 
-    // Precision
+    // Poci√≥n "Disparo Continuo": cadencia de subfusil con un da√±o ligeramente menor y sin gastar munici√≥n
+    [Header("Disparo Continuo")]
+    public float shootingDelayContinuo = 0.08f;
+    [Range(0.1f, 1f)]
+    public float multiplicadorDanioContinuo = 0.8f;
+
+    // Precisi√≥n
     private float spreadIntensity = 0.1f;
 
-    // Bullet
+    // Bala
     public GameObject bulletPrefab;
     public Transform bulletSpawn;
     public float bulletSpeed = 20;
@@ -20,6 +24,7 @@ public class Weapon : MonoBehaviour
 
     // Efectos
     public GameObject muzzleEffect;
+    private ParticleSystem muzzleParticles;
     private Animator animator;
 
     // Recarga
@@ -31,68 +36,87 @@ public class Weapon : MonoBehaviour
     public Vector3 spawnPosition;
     public Vector3 spawnRotation;
 
-    // --- NUEVO SEGURO PARA LA UI ---
+    private Camera mainCamera;
+    private PlayerMovement player;
+    private float reloadStartTime;
+    private bool disparoContinuoPrevio;
+
+    // Al reiniciar la escena el AmmoManager nuevo tarda un frame en existir
     private bool uiConectada = false;
 
     private void Awake()
     {
         readytoFire = true;
         animator = GetComponent<Animator>();
+        if (muzzleEffect != null) muzzleParticles = muzzleEffect.GetComponent<ParticleSystem>();
     }
 
     private void Start()
     {
-        if (magazineSize <= 0)
-        {
-            magazineSize = 30;
-            Debug.Log("°Cargador corregido por cÛdigo! Se forzÛ a 30.");
-        }
+        mainCamera = Camera.main;
+        player = FindFirstObjectByType<PlayerMovement>();
+
+        if (magazineSize <= 0) magazineSize = 30;
 
         bulletsLeft = magazineSize;
         isReloading = false;
-        uiConectada = false; // Reiniciamos el seguro
+        uiConectada = false;
     }
 
     void Update()
     {
-        // --- SEGURO: Apenas detecte el nuevo AmmoManager al reiniciar, actualiza la pantalla ---
         if (!uiConectada && AmmoManager.instance != null && AmmoManager.instance.ammoDisplay != null)
         {
             UpdateAmmoUI();
-            uiConectada = true; // Lo apaga para no consumir recursos
+            uiConectada = true;
         }
 
-        // Arma autom·tica: mantener presionado para disparar
-        isFiring = Input.GetMouseButton(0);
+        // El contador de munici√≥n muestra "INF" mientras dure el Disparo Continuo
+        bool continuo = DisparoContinuoActivo;
+        if (continuo != disparoContinuoPrevio)
+        {
+            disparoContinuoPrevio = continuo;
+            UpdateAmmoUI();
+        }
 
-        if (readytoFire && isFiring && !isReloading && bulletsLeft > 0)
+        // Sin disparar ni recargar con el juego en pausa o terminado
+        if (Time.timeScale == 0f || Mouse.current == null || Keyboard.current == null) return;
+
+        // Arma autom√°tica: mantener presionado para disparar
+        isFiring = Mouse.current.leftButton.isPressed;
+
+        if (readytoFire && isFiring && (continuo || (!isReloading && bulletsLeft > 0)))
         {
             FireWeapon();
         }
 
-        if (Input.GetKeyDown(KeyCode.R) && bulletsLeft < magazineSize && isReloading == false)
+        if (Keyboard.current.rKey.wasPressedThisFrame && bulletsLeft < magazineSize && !isReloading)
         {
             Reload();
         }
     }
 
+    // Para la interfaz
+    public float ReloadProgress => isReloading && reloadTime > 0f ? Mathf.Clamp01((Time.time - reloadStartTime) / reloadTime) : 1f;
+
+    public bool DisparoContinuoActivo => player != null && player.IsBuffActive(BuffType.DisparoContinuo);
+
     void UpdateAmmoUI()
     {
         if (AmmoManager.instance != null && AmmoManager.instance.ammoDisplay != null)
         {
-            AmmoManager.instance.ammoDisplay.text = bulletsLeft + " / " + magazineSize;
+            string loaded = DisparoContinuoActivo ? "INF" : bulletsLeft.ToString();
+            AmmoManager.instance.ammoDisplay.text = loaded + " / " + magazineSize;
         }
     }
 
     private void Reload()
     {
         isReloading = true;
-        Invoke("FinishReloading", reloadTime);
+        reloadStartTime = Time.time;
+        Invoke(nameof(FinishReloading), reloadTime);
 
-        if (SoundManager.instance != null && SoundManager.instance.reloadM107 != null)
-        {
-            SoundManager.instance.reloadM107.PlayOneShot(SoundManager.instance.reloadM107.clip);
-        }
+        PlaySound(SoundManager.instance != null ? SoundManager.instance.reloadM107 : null);
 
         if (animator != null) animator.SetTrigger("Reload");
     }
@@ -106,61 +130,52 @@ public class Weapon : MonoBehaviour
 
     private void FireWeapon()
     {
-        if (isReloading || bulletsLeft <= 0) return;
+        bool continuo = DisparoContinuoActivo;
 
-        bulletsLeft--;
-        UpdateAmmoUI();
+        if (!continuo)
+        {
+            bulletsLeft--;
+            UpdateAmmoUI();
+        }
 
-        if (muzzleEffect != null) muzzleEffect.GetComponent<ParticleSystem>().Play();
+        if (muzzleParticles != null) muzzleParticles.Play();
         if (animator != null) animator.SetTrigger("RECOIL");
 
-        if (SoundManager.instance != null && SoundManager.instance.shootingSoundM107 != null)
-        {
-            SoundManager.instance.shootingSoundM107.PlayOneShot(SoundManager.instance.shootingSoundM107.clip);
-        }
+        PlaySound(SoundManager.instance != null ? SoundManager.instance.shootingSoundM107 : null);
 
         readytoFire = false;
 
         Vector3 shootingDirection = CalculateDirectionAndSpread().normalized;
 
-        GameObject bullet = Instantiate(bulletPrefab, bulletSpawn.position, Quaternion.identity);
-        bullet.transform.forward = shootingDirection;
-        bullet.GetComponent<Rigidbody>().linearVelocity = shootingDirection * bulletSpeed;
+        GameObject bullet = PrefabPool.Get(bulletPrefab, bulletSpawn.position, Quaternion.identity);
+        BulletDamage bulletDamage = bullet.GetComponent<BulletDamage>();
+        bulletDamage.lifetime = bulletPrefabLifetime;
+        bulletDamage.Launch(shootingDirection, bulletSpeed, continuo ? multiplicadorDanioContinuo : 1f);
 
-        StartCoroutine(DestroyBulletAfterTime(bullet, bulletPrefabLifetime));
-
-        if (allowReset)
-        {
-            Invoke("ResetShot", shootingDelay);
-            allowReset = false;
-        }
+        Invoke(nameof(ResetShot), continuo ? shootingDelayContinuo : shootingDelay);
     }
 
     private void ResetShot()
     {
         readytoFire = true;
-        allowReset = true;
     }
 
     public Vector3 CalculateDirectionAndSpread()
     {
-        Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-        RaycastHit hit;
-        Vector3 targetPoint;
+        if (mainCamera == null) mainCamera = Camera.main;
 
-        if (Physics.Raycast(ray, out hit)) targetPoint = hit.point;
-        else targetPoint = ray.GetPoint(100);
+        Ray ray = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        Vector3 targetPoint = Physics.Raycast(ray, out RaycastHit hit) ? hit.point : ray.GetPoint(100);
 
         Vector3 direction = targetPoint - bulletSpawn.position;
-        float x = UnityEngine.Random.Range(-spreadIntensity, spreadIntensity);
-        float y = UnityEngine.Random.Range(-spreadIntensity, spreadIntensity);
+        float x = Random.Range(-spreadIntensity, spreadIntensity);
+        float y = Random.Range(-spreadIntensity, spreadIntensity);
 
         return direction + new Vector3(x, y, 0);
     }
 
-    private IEnumerator DestroyBulletAfterTime(GameObject bullet, float delay)
+    static void PlaySound(AudioSource source)
     {
-        yield return new WaitForSeconds(delay);
-        Destroy(bullet);
+        Sfx.Play(source);
     }
 }
