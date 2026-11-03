@@ -7,9 +7,11 @@ public class MainMenu : MonoBehaviour
     [Header("Configuración")]
     public string nombreEscenaJuego = "Cripta";
 
-    [Header("Paneles UI")]
-    public GameObject panelBotones;    // Panel con Jugar, Controles y Salir
-    public GameObject panelControles;  // Panel con la imagen de los controles
+    [Header("Paneles UI (interfaz antigua, oculta)")]
+    public GameObject panelBotones;
+    public GameObject panelControles;
+
+    private GameObject themedMenu;
 
     private void Start()
     {
@@ -18,19 +20,56 @@ public class MainMenu : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        if (panelBotones != null) panelBotones.SetActive(true);
         if (panelControles != null) panelControles.SetActive(false);
 
-        AddOptionsButton();
+        HideLegacyButtons();
+        BuildThemedMenu();
     }
 
-    // Añade el botón "Opciones" copiando el estilo del botón "Controles"
-    void AddOptionsButton()
+    // Los botones originales de la escena se reemplazan por los del tema gótico
+    void HideLegacyButtons()
     {
-        Button controlsButton = OptionsPanel.FindButtonByMethod(panelBotones, nameof(MostrarControles));
-        if (controlsButton == null) return;
+        foreach (Button button in FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
+            {
+                string method = button.onClick.GetPersistentMethodName(i);
+                if (method == nameof(Jugar) || method == nameof(Salir) || method == nameof(MostrarControles))
+                {
+                    button.gameObject.SetActive(false);
+                    break;
+                }
+            }
+        }
+    }
 
-        OptionsPanel.AddOpenButton(controlsButton, MostrarOpciones);
+    void BuildThemedMenu()
+    {
+        Canvas canvas = UITheme.MakeCanvas("MainMenuView", 20);
+        themedMenu = canvas.gameObject;
+
+        // Viñeta suave y brasas sobre la ilustración, sin bloquear los clics
+        Image vignette = UITheme.Icon(canvas.transform, "Vineta", UISprites.Vignette, new Color(1f, 1f, 1f, 0.75f));
+        UITheme.Stretch(vignette.rectTransform);
+
+        RectTransform embers = UITheme.NewRect("Brasas", canvas.transform);
+        UITheme.Stretch(embers);
+        embers.gameObject.AddComponent<EmberField>();
+
+        RectTransform column = UITheme.NewRect("Botones", canvas.transform);
+        UITheme.Place(column, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 56f), new Vector2(460f, 0f));
+        UITheme.VLayout(column.gameObject, 12f, new RectOffset(0, 0, 0, 0));
+        column.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        UITheme.MakeButton(column, "Jugar", Jugar, ButtonStyle.Primary, 70f);
+        UITheme.MakeButton(column, "Controles", MostrarControles, ButtonStyle.Secondary, 62f);
+        UITheme.MakeButton(column, "Opciones", MostrarOpciones, ButtonStyle.Secondary, 62f);
+        UITheme.MakeButton(column, "Salir", Salir, ButtonStyle.Danger, 62f);
+    }
+
+    void SetMenuVisible(bool visible)
+    {
+        if (themedMenu != null) themedMenu.SetActive(visible);
     }
 
     public void Jugar()
@@ -40,20 +79,19 @@ public class MainMenu : MonoBehaviour
 
     public void MostrarOpciones()
     {
-        if (panelBotones != null) panelBotones.SetActive(false);
-        OptionsPanel.Open(() => { if (panelBotones != null) panelBotones.SetActive(true); });
+        SetMenuVisible(false);
+        OptionsPanel.Open(() => SetMenuVisible(true));
     }
 
     public void MostrarControles()
     {
-        if (panelBotones != null) panelBotones.SetActive(false);
-        ControlsPanel.Open(() => { if (panelBotones != null) panelBotones.SetActive(true); });
+        SetMenuVisible(false);
+        ControlsPanel.Open(() => SetMenuVisible(true));
     }
 
     public void OcultarControles()
     {
-        if (panelControles != null) panelControles.SetActive(false);
-        if (panelBotones != null) panelBotones.SetActive(true);
+        SetMenuVisible(true);
     }
 
     public void Salir()

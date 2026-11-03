@@ -64,8 +64,12 @@ public class ControlsPanel : MonoBehaviour
         RectTransform card = UITheme.CenteredCard(overlay.transform, 1040f, UITheme.Accent);
         UITheme.VLayout(card.gameObject, 10f, new RectOffset(56, 56, 48, 44));
 
-        TMP_Text title = UITheme.Label(card, "Titulo", "CONTROLES", 64f, UITheme.Accent, TextAlignmentOptions.Center, FontStyles.Bold);
-        UITheme.Size(title.gameObject, height: 90f);
+        TMP_Text title = UITheme.Label(card, "Titulo", "CONTROLES", 70f, UITheme.TextMain, TextAlignmentOptions.Center, FontStyles.Bold);
+        title.characterSpacing = 12f;
+        UITheme.Outline(title, 0.25f);
+        UITheme.Size(title.gameObject, height: 96f);
+
+        UITheme.Divider(card, UITheme.Accent);
 
         RectTransform gap = UITheme.NewRect("Espacio", card);
         UITheme.Size(gap.gameObject, height: 8f);
@@ -93,17 +97,18 @@ public class ControlsPanel : MonoBehaviour
 
         foreach (string key in keys) KeyCap(keyCell, key);
 
-        TMP_Text description = UITheme.Label(row, "Descripcion", action, 28f, UITheme.TextMain, TextAlignmentOptions.MidlineLeft);
+        TMP_Text description = UITheme.Label(row, "Descripcion", action, 28f, UITheme.TextMain, TextAlignmentOptions.MidlineLeft, FontStyles.Normal, false);
         UITheme.Size(description.gameObject, height: 62f, flexibleWidth: 1f);
     }
 
     static void KeyCap(Transform parent, string text)
     {
-        Image cap = UITheme.Box(parent, "Tecla " + text, UITheme.CardLight, true);
+        Image cap = UITheme.Box(parent, "Tecla " + text, new Color(0.34f, 0.27f, 0.2f), true);
+        cap.sprite = UISprites.Slab;
         UITheme.HLayout(cap.gameObject, 0f, new RectOffset(20, 20, 6, 6), TextAnchor.MiddleCenter);
         UITheme.Size(cap.gameObject, height: 54f);
 
-        TMP_Text label = UITheme.Label(cap.transform, "Texto", text, 28f, UITheme.Accent, TextAlignmentOptions.Center, FontStyles.Bold);
+        TMP_Text label = UITheme.Label(cap.transform, "Texto", text, 27f, new Color(1f, 0.93f, 0.78f), TextAlignmentOptions.Center, FontStyles.Bold);
         UITheme.Size(label.gameObject, height: 42f);
     }
 }

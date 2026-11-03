@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -199,7 +200,14 @@ public class GameManager : MonoBehaviour
             else enemy.ClearFromMap();
         }
 
-        SetActiveIfAssigned(portalSalida, true);
+        // El portal aparece un momento después, cuando ya estalló el jefe
+        StartCoroutine(RevealPortal());
+    }
+
+    IEnumerator RevealPortal()
+    {
+        yield return new WaitForSeconds(1.6f);
+        PortalVisual.Reveal(portalSalida);
     }
 
     // ---------- Fin de la partida ----------

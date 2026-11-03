@@ -5,6 +5,7 @@ using UnityEngine;
 public static class GameSettings
 {
     const string VolumeKey = "opt_volume";
+    const string MusicVolumeKey = "opt_music_volume";
     const string SfxVolumeKey = "opt_sfx_volume";
     const string SensitivityKey = "opt_sensitivity";
 
@@ -20,6 +21,17 @@ public static class GameSettings
         {
             PlayerPrefs.SetFloat(VolumeKey, Mathf.Clamp01(value));
             Apply();
+            Changed?.Invoke();
+        }
+    }
+
+    // Volumen solo de la música (ver MusicController)
+    public static float MusicVolume
+    {
+        get => PlayerPrefs.GetFloat(MusicVolumeKey, 1f);
+        set
+        {
+            PlayerPrefs.SetFloat(MusicVolumeKey, Mathf.Clamp01(value));
             Changed?.Invoke();
         }
     }

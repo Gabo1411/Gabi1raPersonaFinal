@@ -1,11 +1,18 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Interfaz de juego: vida y dash abajo a la izquierda, munición abajo a la derecha y puntos arriba al centro.
+// Interfaz de juego con aspecto de cripta: vida y dash abajo a la izquierda, munición abajo a la derecha
+// (una bala por cada tiro del cargador) y puntos arriba al centro.
 public class HudView : MonoBehaviour
 {
-    const float BarWidth = 426f;
+    const float HealthBarWidth = 470f;
+    const float PipsWidth = 384f;
+
+    static readonly Color BloodDark = new Color(0.45f, 0.04f, 0.05f);
+    static readonly Color BloodBright = new Color(0.9f, 0.16f, 0.14f);
+    static readonly Color Warm = new Color(0.95f, 0.62f, 0.2f);
 
     PlayerMovement player;
     Weapon weapon;
@@ -13,22 +20,20 @@ public class HudView : MonoBehaviour
 
     // Vida
     RectTransform healthFill, healthGhost;
-    Image healthFillImage;
+    Image healthFillImage, heartIcon;
     TMP_Text healthValue;
     float shownHealth = 1f, ghostHealth = 1f;
     int lastHealth = -1, lastMaxHealth = -1;
 
     // Dash
-    RectTransform dashFill;
-    Image dashFillImage;
-    TMP_Text dashLabel;
-    bool lastDashReady = true;
+    Image dashFill, dashRing, dashIcon;
+    TMP_Text dashKey;
 
     // Munición
     TMP_Text ammoTitle, ammoCurrent;
-    GameObject reloadTrack;
-    RectTransform reloadFill;
-    int lastAmmo = -999, lastAmmoMax = -1;
+    readonly List<Image> pips = new List<Image>();
+    RectTransform pipsRoot;
+    int lastAmmo = -999, lastAmmoMax = -1, lastShownPips = -1;
     bool lastContinuous, lastReloading;
 
     // Puntos
@@ -46,6 +51,7 @@ public class HudView : MonoBehaviour
         hud.group.blocksRaycasts = false;
         hud.group.interactable = false;
         hud.BuildHealth();
+        hud.BuildDash();
         hud.BuildAmmo();
         hud.BuildScore();
         return hud;
@@ -56,45 +62,37 @@ public class HudView : MonoBehaviour
     void BuildHealth()
     {
         Image panel = UITheme.Box(transform, "Vida", UITheme.Hud);
-        UITheme.Place(panel.rectTransform, Vector2.zero, Vector2.zero, new Vector2(48f, 48f), new Vector2(540f, 124f));
+        UITheme.Place(panel.rectTransform, Vector2.zero, Vector2.zero, new Vector2(170f, 48f), new Vector2(590f, 112f));
 
-        Image icon = UITheme.Icon(panel.transform, "Icono", BuffIcons.Plus, UITheme.Danger);
-        UITheme.Place(icon.rectTransform, Vector2.zero, Vector2.zero, new Vector2(24f, 50f), new Vector2(50f, 50f));
+        heartIcon = UITheme.Icon(panel.transform, "Corazon", BuffIcons.Heart, BloodBright);
+        UITheme.Place(heartIcon.rectTransform, Vector2.zero, Vector2.zero, new Vector2(30f, 36f), new Vector2(48f, 48f));
 
-        TMP_Text title = UITheme.Label(panel.transform, "Titulo", "VIDA", 22f, UITheme.TextDim, TextAlignmentOptions.BottomLeft, FontStyles.Bold);
-        UITheme.Place(title.rectTransform, Vector2.zero, Vector2.zero, new Vector2(92f, 88f), new Vector2(200f, 28f));
+        TMP_Text title = UITheme.Label(panel.transform, "Titulo", "VIDA", 21f, UITheme.Bronze, TextAlignmentOptions.BottomLeft, FontStyles.Bold);
+        title.characterSpacing = 6f;
+        UITheme.Place(title.rectTransform, Vector2.zero, Vector2.zero, new Vector2(94f, 64f), new Vector2(200f, 30f));
 
-        healthValue = UITheme.Label(panel.transform, "Valor", "", 30f, UITheme.TextMain, TextAlignmentOptions.BottomRight, FontStyles.Bold);
-        UITheme.Place(healthValue.rectTransform, Vector2.zero, new Vector2(1f, 0f), new Vector2(518f, 84f), new Vector2(240f, 34f));
+        healthValue = UITheme.Label(panel.transform, "Valor", "", 34f, UITheme.TextMain, TextAlignmentOptions.BottomRight, FontStyles.Bold);
+        UITheme.Outline(healthValue);
+        UITheme.Place(healthValue.rectTransform, Vector2.zero, new Vector2(1f, 0f), new Vector2(540f, 58f), new Vector2(300f, 40f));
 
         Image track = UITheme.Box(panel.transform, "Pista", UITheme.Track, true);
-        UITheme.Place(track.rectTransform, Vector2.zero, Vector2.zero, new Vector2(92f, 46f), new Vector2(BarWidth, 32f));
+        UITheme.Place(track.rectTransform, Vector2.zero, Vector2.zero, new Vector2(94f, 24f), new Vector2(HealthBarWidth, 28f));
 
-        Image ghost = UITheme.Box(track.transform, "Retraso", new Color(1f, 1f, 1f, 0.4f), true);
+        Image ghost = UITheme.Box(track.transform, "Retraso", new Color(1f, 0.9f, 0.8f, 0.45f), true);
         healthGhost = ghost.rectTransform;
         InsetBar(healthGhost);
 
-        Image fill = UITheme.Box(track.transform, "Relleno", UITheme.Success, true);
+        Image fill = UITheme.Box(track.transform, "Relleno", BloodBright, true);
         healthFill = fill.rectTransform;
         healthFillImage = fill;
         InsetBar(healthFill);
 
-        // Dash
-        TMP_Text dashKey = UITheme.Label(panel.transform, "TeclaDash", "SHIFT", 18f, UITheme.TextDim, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
-        UITheme.Place(dashKey.rectTransform, Vector2.zero, Vector2.zero, new Vector2(92f, 12f), new Vector2(70f, 24f));
-
-        Image dashTrack = UITheme.Box(panel.transform, "PistaDash", UITheme.Track, true);
-        UITheme.Place(dashTrack.rectTransform, Vector2.zero, Vector2.zero, new Vector2(166f, 18f), new Vector2(190f, 12f));
-
-        Image dash = UITheme.Box(dashTrack.transform, "RellenoDash", UITheme.Accent, true);
-        dashFill = dash.rectTransform;
-        dashFillImage = dash;
-        dashFill.anchorMin = Vector2.zero;
-        dashFill.anchorMax = Vector2.one;
-        dashFill.offsetMin = dashFill.offsetMax = Vector2.zero;
-
-        dashLabel = UITheme.Label(panel.transform, "EtiquetaDash", "DASH", 18f, UITheme.TextDim, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
-        UITheme.Place(dashLabel.rectTransform, Vector2.zero, Vector2.zero, new Vector2(370f, 12f), new Vector2(150f, 24f));
+        // Brillo en la mitad superior de la barra
+        Image gloss = UITheme.Box(fill.transform, "Brillo", new Color(1f, 1f, 1f, 0.2f), true);
+        gloss.rectTransform.anchorMin = new Vector2(0f, 0.5f);
+        gloss.rectTransform.anchorMax = Vector2.one;
+        gloss.rectTransform.offsetMin = new Vector2(2f, 0f);
+        gloss.rectTransform.offsetMax = new Vector2(-2f, -2f);
     }
 
     static void InsetBar(RectTransform rect)
@@ -105,52 +103,98 @@ public class HudView : MonoBehaviour
         rect.offsetMax = new Vector2(-3f, -3f);
     }
 
+    // Runa circular que se llena mientras se recarga el dash
+    void BuildDash()
+    {
+        RectTransform rune = UITheme.NewRect("Dash", transform);
+        UITheme.Place(rune, Vector2.zero, Vector2.zero, new Vector2(52f, 64f), new Vector2(100f, 100f));
+
+        Image back = UITheme.Icon(rune, "Fondo", BuffIcons.Circle, new Color(0.04f, 0.03f, 0.05f, 0.92f));
+        UITheme.Stretch(back.rectTransform);
+
+        dashFill = UITheme.Icon(rune, "Relleno", BuffIcons.Circle, new Color(0.45f, 0.5f, 0.62f, 0.8f));
+        UITheme.Stretch(dashFill.rectTransform, 9f);
+        dashFill.type = Image.Type.Filled;
+        dashFill.fillMethod = Image.FillMethod.Radial360;
+        dashFill.fillOrigin = (int)Image.Origin360.Top;
+        dashFill.fillClockwise = true;
+
+        dashRing = UITheme.Icon(rune, "Aro", BuffIcons.Ring, UITheme.Bronze);
+        UITheme.Stretch(dashRing.rectTransform);
+
+        dashIcon = UITheme.Icon(rune, "Icono", BuffIcons.Chevrons, UITheme.TextMain);
+        UITheme.Place(dashIcon.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(46f, 46f));
+
+        dashKey = UITheme.Label(transform, "TeclaDash", "SHIFT", 19f, UITheme.Bronze, TextAlignmentOptions.Center, FontStyles.Bold);
+        dashKey.characterSpacing = 5f;
+        UITheme.Place(dashKey.rectTransform, Vector2.zero, Vector2.zero, new Vector2(52f, 32f), new Vector2(100f, 28f));
+    }
+
     void BuildAmmo()
     {
         Image panel = UITheme.Box(transform, "Municion", UITheme.Hud);
-        UITheme.Place(panel.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-48f, 48f), new Vector2(340f, 124f));
+        UITheme.Place(panel.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-48f, 48f), new Vector2(450f, 150f));
 
-        ammoTitle = UITheme.Label(panel.transform, "Titulo", "MUNICIÓN", 22f, UITheme.TextDim, TextAlignmentOptions.BottomLeft, FontStyles.Bold);
-        UITheme.Place(ammoTitle.rectTransform, Vector2.zero, Vector2.zero, new Vector2(26f, 88f), new Vector2(240f, 28f));
+        ammoTitle = UITheme.Label(panel.transform, "Titulo", "MUNICIÓN", 21f, UITheme.Bronze, TextAlignmentOptions.BottomLeft, FontStyles.Bold);
+        ammoTitle.characterSpacing = 6f;
+        UITheme.Place(ammoTitle.rectTransform, Vector2.zero, Vector2.zero, new Vector2(32f, 114f), new Vector2(300f, 28f));
 
-        Image icon = UITheme.Icon(panel.transform, "Icono", BuffIcons.Bullets, UITheme.TextDim);
-        UITheme.Place(icon.rectTransform, Vector2.zero, Vector2.zero, new Vector2(276f, 80f), new Vector2(40f, 40f));
+        ammoCurrent = UITheme.Label(panel.transform, "Actual", "", 64f, UITheme.TextMain, TextAlignmentOptions.BottomLeft, FontStyles.Bold);
+        UITheme.Outline(ammoCurrent, 0.18f);
+        UITheme.Place(ammoCurrent.rectTransform, Vector2.zero, Vector2.zero, new Vector2(30f, 42f), new Vector2(390f, 66f));
 
-        ammoCurrent = UITheme.Label(panel.transform, "Actual", "", 70f, UITheme.TextMain, TextAlignmentOptions.BottomLeft, FontStyles.Bold);
-        UITheme.Place(ammoCurrent.rectTransform, Vector2.zero, Vector2.zero, new Vector2(26f, 20f), new Vector2(290f, 72f));
+        pipsRoot = UITheme.NewRect("Balas", panel.transform);
+        UITheme.Place(pipsRoot, Vector2.zero, Vector2.zero, new Vector2(34f, 16f), new Vector2(PipsWidth, 24f));
+    }
 
-        Image track = UITheme.Box(panel.transform, "PistaRecarga", UITheme.Track, true);
-        UITheme.Place(track.rectTransform, Vector2.zero, Vector2.zero, new Vector2(26f, 12f), new Vector2(288f, 10f));
-        reloadTrack = track.gameObject;
+    // Una bala por cada tiro del cargador; se recrean solo si cambia el tamaño del cargador
+    void RebuildPips(int count)
+    {
+        foreach (Image pip in pips) if (pip != null) Destroy(pip.gameObject);
+        pips.Clear();
 
-        Image fill = UITheme.Box(track.transform, "RellenoRecarga", UITheme.Accent, true);
-        reloadFill = fill.rectTransform;
-        reloadFill.anchorMin = Vector2.zero;
-        reloadFill.anchorMax = Vector2.one;
-        reloadFill.offsetMin = reloadFill.offsetMax = Vector2.zero;
-        reloadTrack.SetActive(false);
+        count = Mathf.Clamp(count, 1, 40);
+        float pitch = PipsWidth / count;
+        float width = Mathf.Min(pitch * 0.62f, 14f);
+
+        for (int i = 0; i < count; i++)
+        {
+            Image pip = UITheme.Icon(pipsRoot, "Bala " + i, BuffIcons.SingleBullet, Warm);
+            UITheme.Place(pip.rectTransform, Vector2.zero, new Vector2(0f, 0f), new Vector2(i * pitch, 0f), new Vector2(width, 24f));
+            pips.Add(pip);
+        }
+        lastShownPips = -1;
     }
 
     void BuildScore()
     {
         Image panel = UITheme.Box(transform, "Puntos", UITheme.Hud);
         scoreRoot = panel.gameObject;
-        UITheme.Place(panel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(440f, 112f));
+        UITheme.Place(panel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(520f, 122f));
 
-        TMP_Text title = UITheme.Label(panel.transform, "Titulo", "PUNTOS", 22f, UITheme.TextDim, TextAlignmentOptions.Top, FontStyles.Bold);
-        UITheme.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(240f, 28f));
+        TMP_Text title = UITheme.Label(panel.transform, "Titulo", "PUNTOS", 21f, UITheme.Bronze, TextAlignmentOptions.Center, FontStyles.Bold);
+        title.characterSpacing = 8f;
+        UITheme.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -14f), new Vector2(220f, 28f));
 
-        scoreValue = UITheme.Label(panel.transform, "Valor", "", 50f, UITheme.TextMain, TextAlignmentOptions.Center, FontStyles.Bold);
-        UITheme.Place(scoreValue.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -2f), new Vector2(400f, 64f));
+        foreach (float side in new[] { -1f, 1f })
+        {
+            Image diamond = UITheme.Icon(panel.transform, "Adorno", BuffIcons.Diamond, UITheme.Bronze);
+            UITheme.Place(diamond.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), new Vector2(side * 96f, -28f), new Vector2(12f, 12f));
+        }
+
+        scoreValue = UITheme.Label(panel.transform, "Valor", "", 56f, UITheme.TextMain, TextAlignmentOptions.Center, FontStyles.Bold);
+        UITheme.Outline(scoreValue);
+        UITheme.Place(scoreValue.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -4f), new Vector2(460f, 70f));
 
         Image track = UITheme.Box(panel.transform, "Pista", UITheme.Track, true);
-        UITheme.Place(track.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 12f), new Vector2(392f, 10f));
+        UITheme.Place(track.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(420f, 12f));
 
         Image fill = UITheme.Box(track.transform, "Relleno", UITheme.Accent, true);
         scoreFill = fill.rectTransform;
         scoreFill.anchorMin = Vector2.zero;
         scoreFill.anchorMax = new Vector2(0f, 1f);
-        scoreFill.offsetMin = scoreFill.offsetMax = Vector2.zero;
+        scoreFill.offsetMin = new Vector2(2f, 2f);
+        scoreFill.offsetMax = new Vector2(-2f, -2f);
     }
 
     // ---------- Actualización ----------
@@ -179,25 +223,24 @@ public class HudView : MonoBehaviour
         float dt = Time.unscaledDeltaTime;
 
         shownHealth = Mathf.MoveTowards(shownHealth, target, 3f * dt);
-        // La barra blanca se queda atrás al recibir daño y sube de golpe al curarse
+        // La franja clara se queda atrás al recibir daño y sube de golpe al curarse
         ghostHealth = ghostHealth > target ? Mathf.MoveTowards(ghostHealth, target, 0.35f * dt) : target;
 
         healthFill.anchorMax = new Vector2(Mathf.Max(shownHealth, 0.001f), 1f);
         healthGhost.anchorMax = new Vector2(Mathf.Max(ghostHealth, 0.001f), 1f);
-        healthFillImage.color = HealthColor(shownHealth);
+        healthFillImage.color = Color.Lerp(BloodDark, BloodBright, Mathf.Clamp01(shownHealth * 1.6f));
+
+        // Con poca vida el corazón late
+        bool low = target <= 0.3f && !player.IsDead;
+        float beat = low ? 1f + 0.18f * Mathf.Max(0f, Mathf.Sin(Time.unscaledTime * 7f)) : 1f;
+        heartIcon.rectTransform.localScale = Vector3.one * beat;
 
         if (player.Health != lastHealth || player.maxHealth != lastMaxHealth)
         {
             lastHealth = player.Health;
             lastMaxHealth = player.maxHealth;
-            healthValue.text = Mathf.Max(0, player.Health) + " <size=70%><color=#ABABBD>/ " + player.maxHealth + "</color></size>";
+            healthValue.text = Mathf.Max(0, player.Health) + " <size=65%><color=#AD9A80>/ " + player.maxHealth + "</color></size>";
         }
-    }
-
-    static Color HealthColor(float pct)
-    {
-        Color low = UITheme.Danger, mid = new Color(0.95f, 0.75f, 0.25f), high = UITheme.Success;
-        return pct < 0.5f ? Color.Lerp(low, mid, pct / 0.5f) : Color.Lerp(mid, high, (pct - 0.5f) / 0.5f);
     }
 
     void UpdateDash()
@@ -205,15 +248,11 @@ public class HudView : MonoBehaviour
         float progress = player.GetDashCooldownProgress();
         bool ready = progress >= 1f;
 
-        dashFill.anchorMax = new Vector2(progress, 1f);
-        dashFillImage.color = ready ? UITheme.Accent : new Color(0.45f, 0.5f, 0.62f);
-
-        if (ready != lastDashReady)
-        {
-            lastDashReady = ready;
-            dashLabel.text = ready ? "DASH LISTO" : "DASH";
-            dashLabel.color = ready ? UITheme.Accent : UITheme.TextDim;
-        }
+        dashFill.fillAmount = progress;
+        dashFill.color = ready ? new Color(0.98f, 0.7f, 0.27f, 0.85f) : new Color(0.4f, 0.45f, 0.58f, 0.8f);
+        dashRing.color = ready ? UITheme.Accent : UITheme.Bronze;
+        dashIcon.color = ready ? new Color(0.12f, 0.07f, 0.03f) : UITheme.TextMain;
+        dashKey.color = ready ? UITheme.Accent : UITheme.Bronze;
     }
 
     void UpdateAmmo()
@@ -221,30 +260,45 @@ public class HudView : MonoBehaviour
         if (weapon == null) weapon = FindFirstObjectByType<Weapon>();
         if (weapon == null) return;
 
+        int max = Mathf.Max(1, weapon.magazineSize);
+        if (max != lastAmmoMax || pips.Count == 0)
+        {
+            lastAmmoMax = max;
+            RebuildPips(max);
+        }
+
         bool continuous = weapon.DisparoContinuoActivo;
         bool reloading = weapon.isReloading && !continuous;
 
-        if (weapon.bulletsLeft != lastAmmo || weapon.magazineSize != lastAmmoMax || continuous != lastContinuous || reloading != lastReloading)
+        if (weapon.bulletsLeft != lastAmmo || continuous != lastContinuous || reloading != lastReloading)
         {
             lastAmmo = weapon.bulletsLeft;
-            lastAmmoMax = weapon.magazineSize;
             lastContinuous = continuous;
             lastReloading = reloading;
 
             ammoCurrent.text = continuous
                 ? "INF"
-                : weapon.bulletsLeft + " <size=50%><color=#ABABBD>/ " + weapon.magazineSize + "</color></size>";
+                : weapon.bulletsLeft + " <size=48%><color=#AD9A80>/ " + weapon.magazineSize + "</color></size>";
             ammoTitle.text = continuous ? "DISPARO CONTINUO" : (reloading ? "RECARGANDO" : "MUNICIÓN");
-            ammoTitle.color = continuous || reloading ? UITheme.Accent : UITheme.TextDim;
-            reloadTrack.SetActive(reloading);
+            ammoTitle.color = continuous || reloading ? UITheme.Accent : UITheme.Bronze;
         }
 
         bool low = !continuous && weapon.magazineSize > 0 && weapon.bulletsLeft <= weapon.magazineSize * 0.25f;
         if (continuous) ammoCurrent.color = UITheme.Accent;
-        else if (low) ammoCurrent.color = Color.Lerp(UITheme.Danger, UITheme.TextMain, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 8f));
+        else if (low && !reloading) ammoCurrent.color = Color.Lerp(UITheme.Danger, UITheme.TextMain, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 8f));
         else ammoCurrent.color = reloading ? UITheme.TextDim : UITheme.TextMain;
 
-        if (reloading) reloadFill.anchorMax = new Vector2(weapon.ReloadProgress, 1f);
+        // Balas encendidas: las que quedan, o las que se van cargando durante la recarga
+        int lit = continuous ? pips.Count : (reloading ? Mathf.FloorToInt(weapon.ReloadProgress * pips.Count) : Mathf.Clamp(weapon.bulletsLeft, 0, pips.Count));
+        if (lit != lastShownPips || continuous)
+        {
+            lastShownPips = lit;
+            for (int i = 0; i < pips.Count; i++)
+            {
+                bool on = i < lit;
+                pips[i].color = on ? (continuous ? UITheme.Accent : Warm) : new Color(0.2f, 0.17f, 0.16f, 0.9f);
+            }
+        }
     }
 
     void UpdateScore()
@@ -259,7 +313,7 @@ public class HudView : MonoBehaviour
         {
             lastScore = manager.CurrentScore;
             lastTarget = manager.targetScore;
-            scoreValue.text = lastScore + " <size=60%><color=#ABABBD>/ " + lastTarget + "</color></size>";
+            scoreValue.text = lastScore + " <size=55%><color=#AD9A80>/ " + lastTarget + "</color></size>";
         }
 
         float pct = Mathf.Clamp01((float)manager.CurrentScore / Mathf.Max(1, manager.targetScore));

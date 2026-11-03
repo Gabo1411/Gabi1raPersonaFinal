@@ -24,7 +24,7 @@ public static class BuffIcons
         new[] { new Vector2(0.43f, 0.04f), new Vector2(0.57f, 0.04f), new Vector2(0.57f, 0.10f), new Vector2(0.43f, 0.10f) }
     };
 
-    static Sprite circle, ring, bolt, doubleBolt, sword, crossedSwords, plus, arrow, bullets, glow;
+    static Sprite circle, ring, bolt, doubleBolt, sword, crossedSwords, plus, arrow, bullets, glow, heart, chevrons, diamond, bullet;
 
     public static Sprite Circle => circle != null ? circle : (circle = Render((x, y) => DistanceSqr(x, y) <= 0.25f));
 
@@ -74,6 +74,26 @@ public static class BuffIcons
             new Vector2(x + 0.075f, baseY + 0.50f), new Vector2(x, baseY + 0.72f), new Vector2(x - 0.075f, baseY + 0.50f)
         };
     }
+
+    // Corazón (vida)
+    public static Sprite Heart => heart != null ? heart : (heart = Render((x, y) =>
+    {
+        float px = (x - 0.5f) * 2.5f, py = (y - 0.47f) * 2.5f;
+        float a = px * px + py * py - 1f;
+        return a * a * a - px * px * py * py * py <= 0f;
+    }));
+
+    // Dos chevrones hacia la derecha (dash)
+    public static Sprite Chevrons => chevrons != null ? chevrons : (chevrons = Render(InPolygons(
+        new[] { new Vector2(0.10f, 0.2f), new Vector2(0.36f, 0.5f), new Vector2(0.10f, 0.8f), new Vector2(0.24f, 0.8f), new Vector2(0.5f, 0.5f), new Vector2(0.24f, 0.2f) },
+        new[] { new Vector2(0.46f, 0.2f), new Vector2(0.72f, 0.5f), new Vector2(0.46f, 0.8f), new Vector2(0.60f, 0.8f), new Vector2(0.86f, 0.5f), new Vector2(0.60f, 0.2f) })));
+
+    public static Sprite Diamond => diamond != null ? diamond : (diamond = Render(InPolygons(
+        new[] { new Vector2(0.5f, 0.97f), new Vector2(0.97f, 0.5f), new Vector2(0.5f, 0.03f), new Vector2(0.03f, 0.5f) })));
+
+    // Una sola bala vertical (contador de munición)
+    public static Sprite SingleBullet => bullet != null ? bullet : (bullet = Render(InPolygons(
+        new[] { new Vector2(0.22f, 0.02f), new Vector2(0.78f, 0.02f), new Vector2(0.78f, 0.58f), new Vector2(0.5f, 0.98f), new Vector2(0.22f, 0.58f) })));
 
     delegate bool Shape(float x, float y);
 

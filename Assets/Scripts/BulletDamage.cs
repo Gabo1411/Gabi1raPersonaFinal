@@ -5,6 +5,9 @@ public class BulletDamage : MonoBehaviour
     public int damage = 3;
     public float lifetime = 3f;
 
+    [Tooltip("Efecto que aparece al impactar contra un enemigo o una pared.")]
+    public GameObject impactEffect;
+
     private int baseDamage;
     private float timeLeft;
     private Rigidbody body;
@@ -56,6 +59,8 @@ public class BulletDamage : MonoBehaviour
             IDamageable target = other.GetComponentInParent<IDamageable>();
             if (target != null) target.TakeDamage(damage);
         }
+
+        if (impactEffect != null) Instantiate(impactEffect, transform.position, Quaternion.identity);
 
         PrefabPool.Release(gameObject);
     }

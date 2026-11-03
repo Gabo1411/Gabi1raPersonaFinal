@@ -28,7 +28,11 @@ public class BossArenaSpawner : MonoBehaviour
         Vector2 circulo = Random.insideUnitCircle * radioSpawn;
         Vector3 posFinal = new Vector3(transform.position.x + circulo.x, transform.position.y, transform.position.z + circulo.y);
 
-        Instantiate(prefab, posFinal, Quaternion.identity);
+        GameObject enemy = Instantiate(prefab, posFinal, Quaternion.identity);
+
+        // Los enemigos de la arena mueren con sus propias partículas
+        EnemyBase enemyBase = enemy.GetComponent<EnemyBase>();
+        if (enemyBase != null) enemyBase.efectoMuerteArena = true;
     }
 
     public void DetenerSpawner()

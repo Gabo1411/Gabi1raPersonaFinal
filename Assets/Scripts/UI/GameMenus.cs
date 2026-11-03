@@ -36,13 +36,17 @@ public class GameMenus : MonoBehaviour
     {
         pausePanel = UITheme.Overlay(parent, "Pausa", UITheme.Dim);
 
-        RectTransform card = UITheme.CenteredCard(pausePanel.transform, 620f, UITheme.Accent);
-        UITheme.VLayout(card.gameObject, 16f, new RectOffset(56, 56, 52, 44));
+        RectTransform card = UITheme.CenteredCard(pausePanel.transform, 660f, UITheme.Accent);
+        UITheme.VLayout(card.gameObject, 16f, new RectOffset(70, 70, 56, 52));
 
-        TMP_Text title = UITheme.Label(card, "Titulo", "PAUSA", 76f, UITheme.Accent, TextAlignmentOptions.Center, FontStyles.Bold);
-        UITheme.Size(title.gameObject, height: 100f);
+        TMP_Text title = UITheme.Label(card, "Titulo", "PAUSA", 88f, UITheme.TextMain, TextAlignmentOptions.Center, FontStyles.Bold);
+        title.characterSpacing = 14f;
+        UITheme.Outline(title, 0.25f);
+        UITheme.Size(title.gameObject, height: 110f);
 
-        Spacer(card, 6f);
+        UITheme.Divider(card, UITheme.Accent);
+
+        Spacer(card, 10f);
 
         UITheme.MakeButton(card, "Reanudar", manager.ResumeGame, ButtonStyle.Primary);
         UITheme.MakeButton(card, "Controles", manager.OpenControls);
@@ -51,7 +55,7 @@ public class GameMenus : MonoBehaviour
 
         Spacer(card, 4f);
 
-        TMP_Text hint = UITheme.Label(card, "Ayuda", "ESC para continuar", 24f, UITheme.TextDim);
+        TMP_Text hint = UITheme.Label(card, "Ayuda", "ESC para continuar", 24f, UITheme.TextDim, TextAlignmentOptions.Center, FontStyles.Italic, false);
         UITheme.Size(hint.gameObject, height: 32f);
     }
 
@@ -67,19 +71,23 @@ public class GameMenus : MonoBehaviour
     {
         if (resultPanel != null) Destroy(resultPanel);
 
-        Color accent = win ? UITheme.Success : UITheme.Danger;
-        Color dim = win ? new Color(0.02f, 0.1f, 0.05f, 0.86f) : new Color(0.13f, 0.02f, 0.02f, 0.9f);
+        Color accent = win ? UITheme.Accent : new Color(0.9f, 0.18f, 0.16f);
+        Color dim = win ? new Color(0.07f, 0.05f, 0.01f, 0.86f) : new Color(0.14f, 0.01f, 0.01f, 0.9f);
 
         resultPanel = UITheme.Overlay(transform, win ? "Victoria" : "Derrota", dim);
 
-        RectTransform card = UITheme.CenteredCard(resultPanel.transform, 820f, accent);
-        UITheme.VLayout(card.gameObject, 18f, new RectOffset(60, 60, 56, 52));
+        RectTransform card = UITheme.CenteredCard(resultPanel.transform, 860f, accent);
+        UITheme.VLayout(card.gameObject, 18f, new RectOffset(70, 70, 60, 56));
 
-        TMP_Text title = UITheme.Label(card, "Titulo", win ? "VICTORIA" : "HAS MUERTO", 92f, accent, TextAlignmentOptions.Center, FontStyles.Bold);
-        UITheme.Size(title.gameObject, height: 120f);
+        TMP_Text title = UITheme.Label(card, "Titulo", win ? "VICTORIA" : "HAS MUERTO", 88f, accent, TextAlignmentOptions.Center, FontStyles.Bold);
+        title.characterSpacing = 6f;
+        UITheme.Outline(title, 0.28f);
+        UITheme.Size(title.gameObject, height: 124f);
+
+        UITheme.Divider(card, accent, 520f, 28f);
 
         TMP_Text subtitle = UITheme.Label(card, "Subtitulo",
-            win ? "Escapaste de la cripta" : "La cripta te ha reclamado", 34f, UITheme.TextDim);
+            win ? "Escapaste de la cripta" : "La cripta te ha reclamado", 34f, UITheme.TextDim, TextAlignmentOptions.Center, FontStyles.Italic, false);
         UITheme.Size(subtitle.gameObject, height: 46f);
 
         Spacer(card, 10f);
@@ -99,14 +107,16 @@ public class GameMenus : MonoBehaviour
 
     static void Stat(Transform parent, string title, string value)
     {
-        Image box = UITheme.Box(parent, "Dato " + title, UITheme.CardLight);
+        Image box = UITheme.Box(parent, "Dato " + title, Color.white);
         UITheme.VLayout(box.gameObject, 2f, new RectOffset(12, 12, 14, 12), TextAnchor.MiddleCenter);
         UITheme.Size(box.gameObject, flexibleWidth: 1f);
 
-        TMP_Text label = UITheme.Label(box.transform, "Titulo", title, 24f, UITheme.TextDim, TextAlignmentOptions.Center, FontStyles.Bold);
+        TMP_Text label = UITheme.Label(box.transform, "Titulo", title, 22f, UITheme.Bronze, TextAlignmentOptions.Center, FontStyles.Bold);
+        label.characterSpacing = 8f;
         UITheme.Size(label.gameObject, height: 32f);
 
-        TMP_Text number = UITheme.Label(box.transform, "Valor", value, 58f, UITheme.TextMain, TextAlignmentOptions.Center, FontStyles.Bold);
+        TMP_Text number = UITheme.Label(box.transform, "Valor", value, 60f, UITheme.TextMain, TextAlignmentOptions.Center, FontStyles.Bold);
+        UITheme.Outline(number);
         UITheme.Size(number.gameObject, height: 72f);
     }
 

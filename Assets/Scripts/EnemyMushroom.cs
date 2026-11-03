@@ -5,6 +5,8 @@ public class EnemyMushroom : EnemyBase
     [Header("Hongo")]
     public ParticleSystem particulasMovimiento;
 
+    protected override EnemyDeathEffects.Kind DeathKind => EnemyDeathEffects.Kind.Mushroom;
+
     protected override void OnStarted()
     {
         if (animator != null)

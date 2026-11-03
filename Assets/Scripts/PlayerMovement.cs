@@ -60,6 +60,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     public float CurrentSpeed => speed + BuffAmount(BuffType.Velocidad) + BuffAmount(BuffType.VelocidadMejorada);
     public bool IsDead => Health <= 0;
+    public bool IsDashing => isDashing;
 
     // Para mostrar los buffs activos en la interfaz
     public bool IsBuffActive(BuffType type) => buffs[(int)type].Active;

@@ -20,13 +20,13 @@ public class DamageFeedback : MonoBehaviour
     public static void Show(float strength)
     {
         if (instance == null) Create();
-        instance.flash = Mathf.Max(instance.flash, Mathf.Clamp(strength, 0.35f, 1f));
+        instance.flash = Mathf.Max(instance.flash, Mathf.Clamp(strength * 0.7f, 0.3f, 0.7f));
     }
 
     public static void ShowHeal()
     {
         if (instance == null) Create();
-        instance.healFlash = 0.8f;
+        instance.healFlash = 0.28f;
     }
 
     static void Create()
@@ -65,7 +65,7 @@ public class DamageFeedback : MonoBehaviour
                 float dx = (x / (size - 1f)) * 2f - 1f;
                 float dy = (y / (size - 1f)) * 2f - 1f;
                 float distance = Mathf.Sqrt(dx * dx + dy * dy) / 1.4142f;
-                float alpha = Mathf.SmoothStep(0.35f, 1f, distance);
+                float alpha = Mathf.SmoothStep(0.62f, 1f, distance);
                 texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
             }
         }
@@ -79,14 +79,14 @@ public class DamageFeedback : MonoBehaviour
         if (overlay == null) return;
 
         flash = Mathf.MoveTowards(flash, 0f, FadeSpeed * Time.unscaledDeltaTime);
-        healFlash = Mathf.MoveTowards(healFlash, 0f, FadeSpeed * Time.unscaledDeltaTime);
+        healFlash = Mathf.MoveTowards(healFlash, 0f, FadeSpeed * 1.4f * Time.unscaledDeltaTime);
 
         if (player == null) player = FindFirstObjectByType<PlayerMovement>();
 
         float alpha = flash;
         if (player != null && !player.IsDead && player.Health <= player.maxHealth * LowHealthThreshold)
         {
-            float pulse = 0.2f + 0.1f * Mathf.Sin(Time.unscaledTime * 4f);
+            float pulse = 0.07f + 0.035f * Mathf.Sin(Time.unscaledTime * 3f);
             alpha = Mathf.Max(alpha, pulse);
         }
 

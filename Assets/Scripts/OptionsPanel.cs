@@ -1,7 +1,6 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -17,9 +16,11 @@ public class OptionsPanel : MonoBehaviour
     public static bool BlocksInput => IsOpen || closedFrame == Time.frameCount;
 
     Slider volumeSlider;
+    Slider musicSlider;
     Slider sfxSlider;
     Slider sensitivitySlider;
     TMP_Text volumeLabel;
+    TMP_Text musicLabel;
     TMP_Text sfxLabel;
     TMP_Text sensitivityLabel;
     Action onClose;
@@ -46,62 +47,6 @@ public class OptionsPanel : MonoBehaviour
         callback?.Invoke();
     }
 
-    // Crea un botón "Opciones" copiando el estilo de otro botón de la escena (lo usa el menú principal).
-    public static Button AddOpenButton(Button template, UnityAction onClick)
-    {
-        Transform parent = template.transform.parent;
-
-        GameObject clone = Instantiate(template.gameObject, parent);
-        clone.name = "Opciones";
-
-        Button button = clone.GetComponent<Button>();
-        for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
-        {
-            button.onClick.SetPersistentListenerState(i, UnityEventCallState.Off);
-        }
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(onClick);
-
-        TMP_Text tmpLabel = clone.GetComponentInChildren<TMP_Text>(true);
-        if (tmpLabel != null) tmpLabel.text = "Opciones";
-        else
-        {
-            Text label = clone.GetComponentInChildren<Text>(true);
-            if (label != null) label.text = "Opciones";
-        }
-
-        // Sin layout automático el botón se coloca debajo del más bajo del panel
-        if (parent.GetComponent<LayoutGroup>() == null)
-        {
-            RectTransform templateRect = (RectTransform)template.transform;
-            float lowest = templateRect.anchoredPosition.y;
-            foreach (Button sibling in parent.GetComponentsInChildren<Button>(true))
-            {
-                if (sibling.transform.parent != parent || sibling.gameObject == clone) continue;
-                lowest = Mathf.Min(lowest, ((RectTransform)sibling.transform).anchoredPosition.y);
-            }
-
-            RectTransform cloneRect = (RectTransform)clone.transform;
-            cloneRect.anchoredPosition = new Vector2(templateRect.anchoredPosition.x, lowest - (templateRect.rect.height + 20f));
-        }
-
-        return button;
-    }
-
-    public static Button FindButtonByMethod(GameObject root, string methodName)
-    {
-        if (root == null) return null;
-
-        foreach (Button button in root.GetComponentsInChildren<Button>(true))
-        {
-            for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
-            {
-                if (button.onClick.GetPersistentMethodName(i) == methodName) return button;
-            }
-        }
-        return null;
-    }
-
     void Update()
     {
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Close();
@@ -110,6 +55,7 @@ public class OptionsPanel : MonoBehaviour
     void Refresh()
     {
         volumeSlider.SetValueWithoutNotify(GameSettings.Volume);
+        musicSlider.SetValueWithoutNotify(GameSettings.MusicVolume);
         sfxSlider.SetValueWithoutNotify(GameSettings.SfxVolume);
         sensitivitySlider.SetValueWithoutNotify(GameSettings.Sensitivity);
         UpdateLabels();
@@ -118,6 +64,7 @@ public class OptionsPanel : MonoBehaviour
     void UpdateLabels()
     {
         volumeLabel.text = Mathf.RoundToInt(volumeSlider.value * 100f) + "%";
+        musicLabel.text = Mathf.RoundToInt(musicSlider.value * 100f) + "%";
         sfxLabel.text = Mathf.RoundToInt(sfxSlider.value * 100f) + "%";
         sensitivityLabel.text = sensitivitySlider.value.ToString("0.0") + "x";
     }
@@ -131,22 +78,32 @@ public class OptionsPanel : MonoBehaviour
 
         GameObject overlay = UITheme.Overlay(canvas.transform, "Fondo", UITheme.Dim);
 
-        RectTransform card = UITheme.CenteredCard(overlay.transform, 900f, UITheme.Accent);
+        RectTransform card = UITheme.CenteredCard(overlay.transform, 1040f, UITheme.Accent);
         UITheme.VLayout(card.gameObject, 12f, new RectOffset(56, 56, 48, 44));
 
-        TMP_Text title = UITheme.Label(card, "Titulo", "OPCIONES", 64f, UITheme.Accent, TextAlignmentOptions.Center, FontStyles.Bold);
-        UITheme.Size(title.gameObject, height: 90f);
+        TMP_Text title = UITheme.Label(card, "Titulo", "OPCIONES", 70f, UITheme.TextMain, TextAlignmentOptions.Center, FontStyles.Bold);
+        title.characterSpacing = 12f;
+        UITheme.Outline(title, 0.25f);
+        UITheme.Size(title.gameObject, height: 96f);
+
+        UITheme.Divider(card, UITheme.Accent);
 
         RectTransform gap = UITheme.NewRect("Espacio", card);
         UITheme.Size(gap.gameObject, height: 10f);
 
         panel.volumeSlider = Row(card, "Volumen general", 0f, 1f, out panel.volumeLabel);
+        panel.musicSlider = Row(card, "Música", 0f, 1f, out panel.musicLabel);
         panel.sfxSlider = Row(card, "Efectos de sonido", 0f, 1f, out panel.sfxLabel);
         panel.sensitivitySlider = Row(card, "Sensibilidad", GameSettings.MinSensitivity, GameSettings.MaxSensitivity, out panel.sensitivityLabel);
 
         panel.volumeSlider.onValueChanged.AddListener(value =>
         {
             GameSettings.Volume = value;
+            panel.UpdateLabels();
+        });
+        panel.musicSlider.onValueChanged.AddListener(value =>
+        {
+            GameSettings.MusicVolume = value;
             panel.UpdateLabels();
         });
         panel.sfxSlider.onValueChanged.AddListener(value =>
@@ -176,8 +133,8 @@ public class OptionsPanel : MonoBehaviour
         UITheme.HLayout(row.gameObject, 24f, new RectOffset(0, 0, 0, 0), TextAnchor.MiddleLeft);
         UITheme.Size(row.gameObject, height: 72f);
 
-        TMP_Text label = UITheme.Label(row, "Nombre", name, 32f, UITheme.TextMain, TextAlignmentOptions.MidlineLeft);
-        UITheme.Size(label.gameObject, 330f, 72f);
+        TMP_Text label = UITheme.Label(row, "Nombre", name, 29f, UITheme.TextMain, TextAlignmentOptions.MidlineLeft);
+        UITheme.Size(label.gameObject, 410f, 72f);
 
         Slider slider = UITheme.MakeSlider(row, min, max);
 

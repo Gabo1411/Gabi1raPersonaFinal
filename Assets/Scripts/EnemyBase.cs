@@ -32,6 +32,8 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
     [Header("Efectos y Sonido")]
     public GameObject particulasMuerte;
+    [Tooltip("Usa las partículas de muerte propias de la arena del jefe (las activa el spawner de la arena).")]
+    public bool efectoMuerteArena;
     public AudioClip clipMuerte;
 
     protected NavMeshAgent agent;
@@ -168,8 +170,35 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         Destroy(gameObject, 2f);
     }
 
+    // Cada tipo de enemigo define cuál es su efecto de muerte en la arena del jefe
+    protected abstract EnemyDeathEffects.Kind DeathKind { get; }
+
     protected void GenerarParticulas()
     {
+        if (efectoMuerteArena)
+        {
+            // El efecto se centra en el cuerpo real del enemigo y crece con su tamaño
+            float height = 1.7f;
+            Vector3 center = transform.position + Vector3.up * 0.8f;
+            bool hasBounds = false;
+            Bounds bounds = new Bounds(center, Vector3.one);
+            foreach (Renderer rend in GetComponentsInChildren<Renderer>())
+            {
+                if (rend is ParticleSystemRenderer) continue;
+
+                if (!hasBounds) { bounds = rend.bounds; hasBounds = true; }
+                else bounds.Encapsulate(rend.bounds);
+            }
+            if (hasBounds)
+            {
+                height = bounds.size.y;
+                center = bounds.center;
+            }
+            float scale = Mathf.Clamp(height / 1.7f, 1f, 4f);
+            EnemyDeathEffects.Play(DeathKind, center, scale);
+            return;
+        }
+
         if (particulasMuerte != null)
         {
             Instantiate(particulasMuerte, transform.position, Quaternion.identity);

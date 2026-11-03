@@ -22,10 +22,20 @@ public class Weapon : MonoBehaviour
     public float bulletSpeed = 20;
     public float bulletPrefabLifetime = 3f;
 
+    // Sonidos propios del arma (si faltan se usan los del SoundManager)
+    [Header("Sonidos")]
+    public AudioClip shotClip;
+    public AudioClip reloadClip;
+    public AudioClip emptyClip;
+    [Range(0f, 1f)]
+    public float soundVolume = 1f;
+
     // Efectos
     public GameObject muzzleEffect;
     private ParticleSystem muzzleParticles;
-    private Animator animator;
+    private WeaponAnimator weaponAnimator;
+    private AudioSource sfxSource;
+    private float nextEmptyClick;
 
     // Recarga
     public float reloadTime;
@@ -47,7 +57,10 @@ public class Weapon : MonoBehaviour
     private void Awake()
     {
         readytoFire = true;
-        animator = GetComponent<Animator>();
+        sfxSource = gameObject.AddComponent<AudioSource>();
+        sfxSource.playOnAwake = false;
+        sfxSource.spatialBlend = 0f;
+        weaponAnimator = GetComponentInChildren<WeaponAnimator>();
         if (muzzleEffect != null) muzzleParticles = muzzleEffect.GetComponent<ParticleSystem>();
     }
 
@@ -89,6 +102,13 @@ public class Weapon : MonoBehaviour
         {
             FireWeapon();
         }
+        else if (isFiring && !continuo && !isReloading && bulletsLeft <= 0 && Time.time >= nextEmptyClick)
+        {
+            // Sin munición: chasquido seco en lugar de disparar
+            nextEmptyClick = Time.time + 0.35f;
+            PlaySound(emptyClip, SoundManager.instance != null ? SoundManager.instance.emptySoundM107 : null);
+            if (weaponAnimator != null) weaponAnimator.OnDryFire();
+        }
 
         if (Keyboard.current.rKey.wasPressedThisFrame && bulletsLeft < magazineSize && !isReloading)
         {
@@ -116,9 +136,7 @@ public class Weapon : MonoBehaviour
         reloadStartTime = Time.time;
         Invoke(nameof(FinishReloading), reloadTime);
 
-        PlaySound(SoundManager.instance != null ? SoundManager.instance.reloadM107 : null);
-
-        if (animator != null) animator.SetTrigger("Reload");
+        PlaySound(reloadClip, SoundManager.instance != null ? SoundManager.instance.reloadM107 : null);
     }
 
     private void FinishReloading()
@@ -139,9 +157,9 @@ public class Weapon : MonoBehaviour
         }
 
         if (muzzleParticles != null) muzzleParticles.Play();
-        if (animator != null) animator.SetTrigger("RECOIL");
+        if (weaponAnimator != null) weaponAnimator.OnFire(continuo);
 
-        PlaySound(SoundManager.instance != null ? SoundManager.instance.shootingSoundM107 : null);
+        PlaySound(shotClip, SoundManager.instance != null ? SoundManager.instance.shootingSoundM107 : null);
 
         readytoFire = false;
 
@@ -174,8 +192,10 @@ public class Weapon : MonoBehaviour
         return direction + new Vector3(x, y, 0);
     }
 
-    static void PlaySound(AudioSource source)
+    // El arma reproduce sus propios clips; si no tiene, usa la fuente del SoundManager
+    void PlaySound(AudioClip clip, AudioSource fallback)
     {
-        Sfx.Play(source);
+        if (clip != null) sfxSource.PlayOneShot(clip, soundVolume * Sfx.Volume);
+        else Sfx.Play(fallback);
     }
 }

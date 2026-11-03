@@ -150,7 +150,30 @@ public class Boss : MonoBehaviour, IDamageable
         if (animator != null) animator.SetTrigger("Die");
         if (particulasMuerte != null) Instantiate(particulasMuerte, transform.position, Quaternion.identity);
 
+        StartCoroutine(ExplotarBotin());
+
         if (GameManager.Instance != null) GameManager.Instance.BossDefeated();
-        Destroy(gameObject, 2.5f);
+    }
+
+    // El jefe se queda en el suelo y de su interior revienta un botín de cofre de fantasía
+    IEnumerator ExplotarBotin()
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        Bounds bounds = new Bounds(transform.position, Vector3.one);
+        bool hasBounds = false;
+        foreach (Renderer rend in GetComponentsInChildren<Renderer>())
+        {
+            if (rend is ParticleSystemRenderer) continue;
+
+            if (!hasBounds) { bounds = rend.bounds; hasBounds = true; }
+            else bounds.Encapsulate(rend.bounds);
+        }
+
+        Collider[] colliders = GetComponentsInChildren<Collider>();
+        BossExplosion.Play(bounds.center, bounds.size, colliders);
+
+        // El cuerpo ya no estorba: así el jugador puede llegar al portal
+        foreach (Collider col in colliders) col.enabled = false;
     }
 }
