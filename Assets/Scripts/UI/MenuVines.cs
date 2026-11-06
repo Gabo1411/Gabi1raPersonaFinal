@@ -12,6 +12,10 @@ public class MenuVines : MaskableGraphic
     {
         public Vine parent;
         public int parentIndex;
+        public Vector2 origin, target;   // fracciones de la pantalla; la enredadera trepa desde el origen hacia el objetivo
+        public float reach, branchFactor;
+        public float zigMix, wobbleAmp, wobbleFreq, wobblePhase, leafScale;
+        public int leafEvery, gripEvery;
         public float baseX, length, width, theta, lean, amplitude, frequency, phase;
         public float thornLength, pulsePhase;
         public int thornEvery;
@@ -42,32 +46,39 @@ public class MenuVines : MaskableGraphic
 
     static float Rand(System.Random rng, float min, float max) => min + (float)rng.NextDouble() * (max - min);
 
-    // Enredaderas pegadas al muro: troncos gruesos en la base que suben en zigzag y se afinan hacia la punta.
-    // No se mueven; solo laten las espinas.
+    // Enredaderas pegadas al muro: nacen en los costados y en la base y trepan en zigzag hacia el centro,
+    // gruesas al principio y cada vez más finas. No se mueven; solo laten las espinas.
     void Build()
     {
         vines.Clear();
         System.Random rng = new System.Random(311);
 
-        // Del fondo: más finas y oscuras, entre las principales
-        float[] backX = { 0.15f, 0.37f, 0.63f, 0.85f };
-        foreach (float x in backX)
-        {
-            Vine vine = NewVine(rng, x + Rand(rng, -0.03f, 0.03f), Rand(rng, 0.5f, 0.68f), Rand(rng, 34f, 46f), true);
-            vines.Add(vine);
-            AddBranches(rng, vine, 2);
-        }
+        // Del fondo: más finas y oscuras
+        AddRoot(rng, new Vector2(0.34f, -0.04f), 0.7f, 38f, true, 2);
+        AddRoot(rng, new Vector2(0.68f, -0.04f), 0.7f, 38f, true, 2);
+        AddRoot(rng, new Vector2(-0.03f, 0.22f), 0.62f, 40f, true, 2);
+        AddRoot(rng, new Vector2(1.03f, 0.42f), 0.62f, 40f, true, 2);
 
-        // Principales: llegan por encima de la mitad de la pantalla
-        float[] frontX = { 0.04f, 0.25f, 0.5f, 0.75f, 0.96f };
-        float[] frontLean = { 0.1f, -0.06f, 0.04f, 0.06f, -0.1f };
-        for (int i = 0; i < frontX.Length; i++)
+        // Principales: desde la base y desde ambos costados, todas buscando el centro del muro
+        AddRoot(rng, new Vector2(0.17f, -0.04f), 0.8f, 66f, false, 4);
+        AddRoot(rng, new Vector2(0.5f, -0.04f), 0.72f, 62f, false, 4);
+        AddRoot(rng, new Vector2(0.83f, -0.04f), 0.8f, 66f, false, 4);
+        float[] sideHeights = { 0.06f, 0.3f, 0.56f };
+        foreach (float h in sideHeights)
         {
-            Vine vine = NewVine(rng, frontX[i], Rand(rng, 0.66f, 0.9f), Rand(rng, 62f, 80f), false);
-            vine.lean = frontLean[i];
-            vines.Add(vine);
-            AddBranches(rng, vine, 4);
+            AddRoot(rng, new Vector2(-0.03f, h), 0.8f, 58f, false, 4);
+            AddRoot(rng, new Vector2(1.03f, Mathf.Clamp01(h + 0.04f)), 0.8f, 58f, false, 4);
         }
+    }
+
+    void AddRoot(System.Random rng, Vector2 origin, float reach, float width, bool back, int branches)
+    {
+        Vine vine = NewVine(rng, 0f, 0f, width * Rand(rng, 0.75f, 1.3f), back);
+        vine.origin = origin;
+        vine.target = new Vector2(0.5f + Rand(rng, -0.07f, 0.07f), 0.58f + Rand(rng, -0.08f, 0.1f));
+        vine.reach = reach * Rand(rng, 0.8f, 1.08f);
+        vines.Add(vine);
+        AddBranches(rng, vine, branches);
     }
 
     Vine NewVine(System.Random rng, float x, float length, float width, bool back)
@@ -78,12 +89,20 @@ public class MenuVines : MaskableGraphic
             length = length,
             width = width,
             lean = Rand(rng, -0.1f, 0.1f),
-            amplitude = Rand(rng, 0.66f, 0.82f),
-            frequency = Rand(rng, 2.6f, 3.6f),
+            // Cada enredadera tiene su carácter: unas en zigzag marcado, otras ondulantes, otras torcidas
+            amplitude = Rand(rng, 0.35f, 0.95f),
+            frequency = Rand(rng, 1.7f, 4.4f),
             phase = Rand(rng, 0f, 1f),
-            thornLength = Rand(rng, 40f, 56f) * (back ? 0.75f : 1f),
+            zigMix = Rand(rng, 0f, 1f),
+            wobbleAmp = Rand(rng, 0f, 0.38f),
+            wobbleFreq = Rand(rng, 3f, 8f),
+            wobblePhase = Rand(rng, 0f, 6.28f),
+            leafEvery = rng.Next(5, 13),
+            gripEvery = rng.Next(7, 16),
+            leafScale = Rand(rng, 0.65f, 1.45f),
+            thornLength = Rand(rng, 30f, 66f) * (back ? 0.75f : 1f),
             pulsePhase = Rand(rng, 0f, 6.28f),
-            thornEvery = 4,
+            thornEvery = rng.Next(3, 7),
             back = back,
             points = new Vector2[Segments + 1],
             angles = new float[Segments + 1]
@@ -98,7 +117,8 @@ public class MenuVines : MaskableGraphic
         {
             float at = 0.1f + (i + Rand(rng, 0.1f, 0.9f)) / count * 0.55f;
             float side = (i % 2 == 0 ? 1f : -1f);
-            Vine branch = NewVine(rng, 0f, parent.length * Rand(rng, 0.3f, 0.46f) * (1f - at * 0.6f), parent.width * Taper(at) * 0.55f, parent.back);
+            Vine branch = NewVine(rng, 0f, 0f, parent.width * Taper(at) * 0.55f, parent.back);
+            branch.branchFactor = Rand(rng, 0.3f, 0.46f) * (1f - at * 0.6f);
             branch.parent = parent;
             branch.parentIndex = Mathf.RoundToInt(at * Segments);
             branch.theta = side * Rand(rng, 0.75f, 1.05f);
@@ -116,11 +136,11 @@ public class MenuVines : MaskableGraphic
     }
 
     // Onda en zigzag con codos marcados pero algo redondeados
-    static float Zig(float x)
+    static float Zig(float x, float mix)
     {
         float s = Mathf.Sin(6.2832f * x);
         float tri = Mathf.Asin(s) * 0.6366f;
-        return 0.88f * tri + 0.12f * s;
+        return mix * tri + (1f - mix) * s;
     }
 
     // La forma es fija: depende solo del tamaño de la pantalla
@@ -128,13 +148,19 @@ public class MenuVines : MaskableGraphic
     {
         Vector2 origin;
         float angle0;
+        float heading = 0f;
         if (vine.parent == null)
         {
-            origin = new Vector2(rect.xMin + vine.baseX * rect.width, rect.yMin - 40f * scale);
-            angle0 = vine.lean;
+            origin = new Vector2(rect.xMin + vine.origin.x * rect.width, rect.yMin + vine.origin.y * rect.height);
+            Vector2 target = new Vector2(rect.xMin + vine.target.x * rect.width, rect.yMin + vine.target.y * rect.height);
+            Vector2 toTarget = target - origin;
+            heading = Mathf.Atan2(toTarget.x, toTarget.y);
+            vine.length = toTarget.magnitude * vine.reach / rect.height;
+            angle0 = heading;
         }
         else
         {
+            vine.length = vine.parent.length * vine.branchFactor;
             origin = vine.parent.points[vine.parentIndex];
             angle0 = vine.parent.angles[vine.parentIndex];
         }
@@ -148,9 +174,11 @@ public class MenuVines : MaskableGraphic
             float u = (float)i / Segments;
             float angle;
             if (vine.parent == null)
-                angle = vine.lean + vine.amplitude * Zig(u * vine.frequency + vine.phase) * (1f - 0.35f * u);
+                angle = heading + vine.amplitude * Zig(u * vine.frequency + vine.phase, vine.zigMix) * (1f - 0.3f * u)
+                        + vine.wobbleAmp * Mathf.Sin(6.2832f * vine.wobbleFreq * u + vine.wobblePhase);
             else
-                angle = angle0 + vine.theta * (1f - 0.55f * u) + vine.amplitude * Zig(u * vine.frequency + vine.phase) * 0.8f;
+                angle = angle0 + vine.theta * (1f - 0.55f * u) + vine.amplitude * Zig(u * vine.frequency + vine.phase, vine.zigMix) * 0.8f
+                        + vine.wobbleAmp * 0.7f * Mathf.Sin(6.2832f * vine.wobbleFreq * u + vine.wobblePhase);
             vine.points[i] = position += step * new Vector2(Mathf.Sin(angle), Mathf.Cos(angle));
             vine.angles[i] = angle;
         }
@@ -172,11 +200,14 @@ public class MenuVines : MaskableGraphic
         foreach (Vine vine in vines) Shape(vine, rect, scale);
 
         // Primero las del fondo, luego las del frente
-        foreach (Vine vine in vines) if (vine.back) Draw(vh, vine, t, scale);
-        foreach (Vine vine in vines) if (!vine.back) Draw(vh, vine, t, scale);
+        // La sombra sobre el muro va debajo de cada capa: así las enredaderas se ven pegadas a la pared
+        foreach (Vine vine in vines) if (vine.back) Draw(vh, vine, t, scale, true);
+        foreach (Vine vine in vines) if (vine.back) Draw(vh, vine, t, scale, false);
+        foreach (Vine vine in vines) if (!vine.back) Draw(vh, vine, t, scale, true);
+        foreach (Vine vine in vines) if (!vine.back) Draw(vh, vine, t, scale, false);
     }
 
-    void Draw(VertexHelper vh, Vine vine, float t, float scale)
+    void Draw(VertexHelper vh, Vine vine, float t, float scale, bool shadow)
     {
         if (vine.visibleFraction <= 0f || vine.visible < 1) return;
 
@@ -211,6 +242,14 @@ public class MenuVines : MaskableGraphic
             Color edgeColor = body * 0.55f; edgeColor.a = 1f;
             Color centerColor = Color.Lerp(body * 1.45f, new Color(0.35f, 0.18f, 0.5f) * shade, pulse * 0.25f); centerColor.a = 1f;
 
+            if (shadow)
+            {
+                // Sombra proyectada hacia abajo y a la derecha, algo más ancha
+                p += new Vector2(8f, -10f) * scale * (vine.back ? 0.6f : 1f);
+                w *= 1.18f;
+                edgeColor = centerColor = new Color(0f, 0f, 0f, vine.back ? 0.3f : 0.45f);
+            }
+
             AddVertex(vh, p - normal * w, edgeColor);
             AddVertex(vh, p, centerColor);
             AddVertex(vh, p + normal * w, edgeColor);
@@ -227,9 +266,82 @@ public class MenuVines : MaskableGraphic
             }
             previous = current;
 
+            if (shadow) continue;
+
             if (i > 1 && i < count && i % vine.thornEvery == 0)
                 Thorn(vh, vine, i, p, dir, normal, w, u, t, scale, shade, fraction);
+
+            // Hojas pegadas a la pared y zarcillos que se agarran a ella con una ventosa
+            if (i > 2 && i < count - 1)
+            {
+                if (i % vine.leafEvery == 2) Leaf(vh, vine, p, dir, normal, w, u, scale * vine.leafScale, shade, (i / vine.leafEvery) % 2 == 0 ? -1f : 1f);
+                if (i % vine.gripEvery == 5 && u < 0.75f) Grip(vh, vine, p, dir, normal, w, scale, shade, (i / vine.gripEvery) % 2 == 0 ? 1f : -1f);
+            }
         }
+    }
+
+    void Leaf(VertexHelper vh, Vine vine, Vector2 p, Vector2 dir, Vector2 normal, float w, float u, float scale, float shade, float side)
+    {
+        float length = (54f - 26f * u) * scale * (vine.back ? 0.8f : 1f);
+        Vector2 leafDir = (normal * side * 0.75f + dir * 0.65f).normalized;
+        Vector2 perp = new Vector2(leafDir.y, -leafDir.x);
+        Vector2 root = p + normal * side * w * 0.5f;
+        Vector2 mid = root + leafDir * length * 0.42f;
+
+        Color dark = new Color(0.06f, 0.13f, 0.09f, 1f) * shade; dark.a = 1f;
+        Color side1 = new Color(0.1f, 0.22f, 0.14f, 1f) * shade; side1.a = 1f;
+        Color tip = new Color(0.2f, 0.3f, 0.24f, 1f) * shade; tip.a = 1f;
+        int b = vh.currentVertCount;
+        AddVertex(vh, root, dark);
+        AddVertex(vh, mid + perp * length * 0.2f, side1);
+        AddVertex(vh, root + leafDir * length, tip);
+        AddVertex(vh, mid - perp * length * 0.2f, side1);
+        vh.AddTriangle(b, b + 1, b + 2);
+        vh.AddTriangle(b, b + 2, b + 3);
+    }
+
+    // Zarcillo corto que se curva sobre el muro y termina en un disco pegado a la piedra
+    void Grip(VertexHelper vh, Vine vine, Vector2 p, Vector2 dir, Vector2 normal, float w, float scale, float shade, float side)
+    {
+        Vector2 position = p + normal * side * w * 0.7f;
+        Vector2 heading = (normal * side - dir * 0.35f).normalized;
+        float step = 15f * scale;
+        Color col = new Color(0.12f, 0.2f, 0.14f, 1f) * shade; col.a = 1f;
+        float half = 2.4f * scale;
+
+        Vector2 previousLeft = position - new Vector2(heading.y, -heading.x) * half;
+        Vector2 previousRight = position + new Vector2(heading.y, -heading.x) * half;
+        for (int k = 1; k <= 4; k++)
+        {
+            float turn = 0.4f * side;
+            heading = new Vector2(heading.x * Mathf.Cos(turn) - heading.y * Mathf.Sin(turn), heading.x * Mathf.Sin(turn) + heading.y * Mathf.Cos(turn));
+            position += heading * step;
+            float hw = half * (1f - k * 0.17f);
+            Vector2 n = new Vector2(heading.y, -heading.x);
+            int b = vh.currentVertCount;
+            AddVertex(vh, previousLeft, col);
+            AddVertex(vh, previousRight, col);
+            AddVertex(vh, position - n * hw, col);
+            AddVertex(vh, position + n * hw, col);
+            vh.AddTriangle(b, b + 1, b + 2);
+            vh.AddTriangle(b + 1, b + 3, b + 2);
+            previousLeft = position - n * hw;
+            previousRight = position + n * hw;
+        }
+
+        // Ventosa: disco con borde más oscuro y centro más claro
+        float radius = 7f * scale;
+        Color rim = new Color(0.08f, 0.07f, 0.1f, 1f) * shade; rim.a = 1f;
+        Color mid = new Color(0.26f, 0.17f, 0.32f, 1f) * shade; mid.a = 1f;
+        int c = vh.currentVertCount;
+        AddVertex(vh, position, mid);
+        const int sides = 8;
+        for (int k = 0; k < sides; k++)
+        {
+            float ang = k * 6.2832f / sides;
+            AddVertex(vh, position + new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * radius, rim);
+        }
+        for (int k = 0; k < sides; k++) vh.AddTriangle(c, c + 1 + k, c + 1 + (k + 1) % sides);
     }
 
     static float Pulse(float t, float u, float phase)
