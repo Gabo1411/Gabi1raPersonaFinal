@@ -1,15 +1,12 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TMPro;
 using UnityEngine.UI;
 
 public class MainMenu : MonoBehaviour
 {
     [Header("Configuración")]
     public string nombreEscenaJuego = "Cripta";
-
-    [Header("Paneles UI (interfaz antigua, oculta)")]
-    public GameObject panelBotones;
-    public GameObject panelControles;
 
     private GameObject themedMenu;
 
@@ -20,51 +17,37 @@ public class MainMenu : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        if (panelControles != null) panelControles.SetActive(false);
-
-        HideLegacyButtons();
         BuildThemedMenu();
-    }
-
-    // Los botones originales de la escena se reemplazan por los del tema gótico
-    void HideLegacyButtons()
-    {
-        foreach (Button button in FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-        {
-            for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
-            {
-                string method = button.onClick.GetPersistentMethodName(i);
-                if (method == nameof(Jugar) || method == nameof(Salir) || method == nameof(MostrarControles))
-                {
-                    button.gameObject.SetActive(false);
-                    break;
-                }
-            }
-        }
     }
 
     void BuildThemedMenu()
     {
+        // El fondo (muro, enredaderas y esporas) vive en la escena; si falta, se crea aquí
+        if (FindFirstObjectByType<MenuVines>() == null) MenuBackdrop.Create();
+
         Canvas canvas = UITheme.MakeCanvas("MainMenuView", 20);
         themedMenu = canvas.gameObject;
 
-        // Viñeta suave y brasas sobre la ilustración, sin bloquear los clics
-        Image vignette = UITheme.Icon(canvas.transform, "Vineta", UISprites.Vignette, new Color(1f, 1f, 1f, 0.75f));
-        UITheme.Stretch(vignette.rectTransform);
+        // Título del juego
+        TMP_Text title = UITheme.Label(canvas.transform, "Titulo", "EL JARDÍN" + "\n" + "DE LAS TUMBAS", 124f, UITheme.TextMain,
+            TextAlignmentOptions.Center, FontStyles.Bold);
+        title.characterSpacing = 10f;
+        title.lineSpacing = -12f;
+        UITheme.Outline(title, 0.28f);
+        UITheme.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(1500f, 300f));
 
-        RectTransform embers = UITheme.NewRect("Brasas", canvas.transform);
-        UITheme.Stretch(embers);
-        embers.gameObject.AddComponent<EmberField>();
+        Image divider = UITheme.Icon(canvas.transform, "Separador", UISprites.Divider, UITheme.Accent);
+        UITheme.Place(divider.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -390f), new Vector2(620f, 34f));
 
-        RectTransform column = UITheme.NewRect("Botones", canvas.transform);
-        UITheme.Place(column, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 56f), new Vector2(460f, 0f));
-        UITheme.VLayout(column.gameObject, 12f, new RectOffset(0, 0, 0, 0));
-        column.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        // Tarjeta de botones, igual que la del menú de pausa
+        RectTransform card = UITheme.CenteredCard(canvas.transform, 560f, new Color(0.62f, 0.3f, 0.95f));
+        card.anchoredPosition = new Vector2(0f, -150f);
+        UITheme.VLayout(card.gameObject, 14f, new RectOffset(60, 60, 48, 48));
 
-        UITheme.MakeButton(column, "Jugar", Jugar, ButtonStyle.Primary, 70f);
-        UITheme.MakeButton(column, "Controles", MostrarControles, ButtonStyle.Secondary, 62f);
-        UITheme.MakeButton(column, "Opciones", MostrarOpciones, ButtonStyle.Secondary, 62f);
-        UITheme.MakeButton(column, "Salir", Salir, ButtonStyle.Danger, 62f);
+        UITheme.MakeButton(card, "Jugar", Jugar, ButtonStyle.Primary, 74f);
+        UITheme.MakeButton(card, "Controles", MostrarControles);
+        UITheme.MakeButton(card, "Opciones", MostrarOpciones);
+        UITheme.MakeButton(card, "Salir", Salir, ButtonStyle.Danger);
     }
 
     void SetMenuVisible(bool visible)

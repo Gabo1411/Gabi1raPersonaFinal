@@ -4,6 +4,12 @@ using UnityEngine;
 using UnityEngine.AI;
 
 // Lógica común de los enemigos que persiguen al jugador: vida, persecución, ataque y muerte.
+// Animación de aparición de un enemigo: mientras dura, no persigue ni ataca
+public interface IEntrance
+{
+    bool IsEmerging { get; }
+}
+
 public abstract class EnemyBase : MonoBehaviour, IDamageable
 {
     public static readonly List<EnemyBase> Active = new List<EnemyBase>();
@@ -49,6 +55,9 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     private float nextRepathTime;
     private float hitDelay = FallbackHitDelay;
 
+    private IEntrance entrance;
+    bool IsEmerging => entrance != null && entrance.IsEmerging;
+
     void OnEnable() => Active.Add(this);
     void OnDisable() => Active.Remove(this);
 
@@ -61,6 +70,14 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
         hitDelay = ComputeHitDelay();
         OnStarted();
+
+        entrance = StartEntrance();
+    }
+
+    // Animación de aparición: por defecto salen reptando de la tierra
+    protected virtual IEntrance StartEntrance()
+    {
+        return EnemyEmerge.Begin(this, agent, hitCollider, animator, jugador != null ? jugador.transform : null);
     }
 
     protected virtual void OnStarted() { }
@@ -69,6 +86,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     void Update()
     {
         if (health <= 0 || jugador == null || jugador.IsDead) return;
+        if (IsEmerging) return;
 
         if (agent != null && agent.enabled && Time.time >= nextRepathTime)
         {
@@ -132,6 +150,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         if (health <= 0) return;
 
         health -= amount;
+        if (byDamage) HitFlash.Play(this);
         if (health <= 0) Die(byDamage);
     }
 

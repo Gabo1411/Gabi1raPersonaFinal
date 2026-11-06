@@ -7,6 +7,13 @@ public class EnemyMushroom : EnemyBase
 
     protected override EnemyDeathEffects.Kind DeathKind => EnemyDeathEffects.Kind.Mushroom;
 
+    // En la arena del jefe brotan como una semilla que se infla; en otro sitio salen de la tierra
+    protected override IEntrance StartEntrance()
+    {
+        if (efectoMuerteArena) return EnemySproutIn.Begin(this, agent, hitCollider);
+        return base.StartEntrance();
+    }
+
     protected override void OnStarted()
     {
         if (animator != null)

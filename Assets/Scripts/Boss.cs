@@ -131,6 +131,7 @@ public class Boss : MonoBehaviour, IDamageable
         if (estaMuerto) return;
 
         currentHealth -= damage;
+        HitFlash.Play(this);
         ActualizarUI();
         if (currentHealth <= 0) Die();
     }
