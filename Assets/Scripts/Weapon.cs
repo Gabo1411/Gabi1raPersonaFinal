@@ -13,6 +13,18 @@ public class Weapon : MonoBehaviour
     [Range(0.1f, 1f)]
     public float multiplicadorDanioContinuo = 0.8f;
 
+    // Modo francotirador (mantener clic derecho): dispara el cristal, gasta varias balas y hace mucho más daño
+    [Header("Modo francotirador")]
+    public int sniperBulletCost = 8;
+    public float sniperDelay = 1.6f;
+    [Tooltip("Multiplicador del daño de una bala con el coste completo; si quedan menos balas el daño baja proporcionalmente.")]
+    public float sniperDamageMultiplier = 8f;
+    public float sniperSpeed = 90f;
+    [Range(0.1f, 1f)]
+    public float sniperMoveFactor = 0.45f;
+    [Range(0.4f, 1f)]
+    public float sniperZoom = 0.72f;
+
     // Precisión
     private float spreadIntensity = 0.1f;
 
@@ -50,6 +62,8 @@ public class Weapon : MonoBehaviour
     private PlayerMovement player;
     private float reloadStartTime;
     private bool disparoContinuoPrevio;
+    private float baseFov, sniperShotTime = -10f;
+    private bool sniperActive;
 
     // Al reiniciar la escena el AmmoManager nuevo tarda un frame en existir
     private bool uiConectada = false;
@@ -67,6 +81,7 @@ public class Weapon : MonoBehaviour
     private void Start()
     {
         mainCamera = Camera.main;
+        if (mainCamera != null) baseFov = mainCamera.fieldOfView;
         player = FindFirstObjectByType<PlayerMovement>();
 
         if (magazineSize <= 0) magazineSize = 30;
@@ -95,10 +110,25 @@ public class Weapon : MonoBehaviour
         // Sin disparar ni recargar con el juego en pausa o terminado
         if (Time.timeScale == 0f || Mouse.current == null || Keyboard.current == null) return;
 
+        // Modo francotirador: mantener clic derecho (no con Disparo Continuo ni recargando)
+        sniperActive = Mouse.current.rightButton.isPressed && !continuo && !isReloading && !(player != null && player.IsDead);
+        if (player != null) player.aimSlow = sniperActive ? sniperMoveFactor : 1f;
+        UpdateZoom();
+
         // Arma automática: mantener presionado para disparar
         isFiring = Mouse.current.leftButton.isPressed;
 
-        if (readytoFire && isFiring && (continuo || (!isReloading && bulletsLeft > 0)))
+        if (sniperActive)
+        {
+            if (readytoFire && isFiring && bulletsLeft > 0) FireSniper();
+            else if (isFiring && bulletsLeft <= 0 && Time.time >= nextEmptyClick)
+            {
+                nextEmptyClick = Time.time + 0.35f;
+                PlaySound(emptyClip, SoundManager.instance != null ? SoundManager.instance.emptySoundM107 : null);
+                if (weaponAnimator != null) weaponAnimator.OnDryFire();
+            }
+        }
+        else if (readytoFire && isFiring && (continuo || (!isReloading && bulletsLeft > 0)))
         {
             FireWeapon();
         }
@@ -114,6 +144,56 @@ public class Weapon : MonoBehaviour
         {
             Reload();
         }
+    }
+
+    // Para el arma y la interfaz
+    public bool SniperActive => sniperActive;
+
+    // 0 justo después del disparo (el cristal salió), 1 cuando ya volvió a crecer en su sitio
+    public float SniperRegrow => Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((Time.time - sniperShotTime) / (sniperDelay * 0.2f)));
+
+    // Energía del cristal tras un disparo cargado: 0 recién disparado (apagado), 1 cuando ya se puede disparar de nuevo
+    public float SniperCharge => Mathf.Clamp01((Time.time - sniperShotTime) / Mathf.Max(0.01f, sniperDelay));
+
+    void UpdateZoom()
+    {
+        if (mainCamera == null) mainCamera = Camera.main;
+        if (mainCamera == null || baseFov <= 0f) return;
+        float target = sniperActive ? baseFov * sniperZoom : baseFov;
+        mainCamera.fieldOfView = Mathf.Lerp(mainCamera.fieldOfView, target, 1f - Mathf.Exp(-12f * Time.unscaledDeltaTime));
+    }
+
+    void OnDisable()
+    {
+        if (player != null) player.aimSlow = 1f;
+        if (mainCamera != null && baseFov > 0f) mainCamera.fieldOfView = baseFov;
+    }
+
+    // Dispara el cristal: gasta hasta 'sniperBulletCost' balas y el daño es proporcional a las que se gastaron
+    private void FireSniper()
+    {
+        int spent = Mathf.Min(sniperBulletCost, bulletsLeft);
+        bulletsLeft -= spent;
+        UpdateAmmoUI();
+
+        float multiplier = sniperDamageMultiplier * spent / Mathf.Max(1, sniperBulletCost);
+        int baseDamage = bulletPrefab != null && bulletPrefab.GetComponent<BulletDamage>() != null ? bulletPrefab.GetComponent<BulletDamage>().damage : 3;
+        int damage = Mathf.Max(1, Mathf.RoundToInt((baseDamage + (player != null ? player.bonusDanio : 0)) * multiplier));
+
+        Vector3 origin = weaponAnimator != null ? weaponAnimator.CoreWorldPosition : bulletSpawn.position;
+        if (mainCamera == null) mainCamera = Camera.main;
+        Ray ray = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        Vector3 target = Physics.Raycast(ray, out RaycastHit hit, 200f, ~0, QueryTriggerInteraction.Ignore) && hit.distance > 2f ? hit.point : ray.GetPoint(100f);
+        Vector3 direction = (target - origin).normalized;
+
+        SniperShot.Fire(origin, direction, damage, sniperSpeed, 150f);
+
+        sniperShotTime = Time.time;
+        readytoFire = false;
+        if (muzzleParticles != null) muzzleParticles.Play();
+        if (weaponAnimator != null) weaponAnimator.OnSniperFire();
+        PlaySound(shotClip, SoundManager.instance != null ? SoundManager.instance.shootingSoundM107 : null);
+        Invoke(nameof(ResetShot), sniperDelay);
     }
 
     // Para la interfaz

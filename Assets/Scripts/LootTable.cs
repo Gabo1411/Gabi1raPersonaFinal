@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 public class LootTable : MonoBehaviour
 {
@@ -24,7 +25,7 @@ public class LootTable : MonoBehaviour
     {
         if (pociones == null || pociones.Length == 0) return;
 
-        Vector3 posicionSuelo = BuscarSuelo();
+        Vector3 posicionSuelo = AlejarDelJefe(BuscarSuelo());
 
         if (Random.Range(0f, 100f) < probabilidadDisparoContinuo && pocionDisparoContinuo != null)
         {
@@ -36,6 +37,53 @@ public class LootTable : MonoBehaviour
 
         GameObject[] opciones = mejoradas && pocionesMejoradas != null && pocionesMejoradas.Length > 0 ? pocionesMejoradas : pociones;
         Instantiate(opciones[Random.Range(0, opciones.Length)], posicionSuelo, Quaternion.identity);
+    }
+
+    // Las pociones no pueden aparecer pegadas al jefe: si el punto cae demasiado cerca, se busca el punto de suelo
+    // válido más cercano fuera de ese radio.
+    Vector3 AlejarDelJefe(Vector3 punto)
+    {
+        Boss jefe = FindFirstObjectByType<Boss>();
+        if (jefe == null) return punto;
+
+        Bounds limites = new Bounds(jefe.transform.position, Vector3.zero);
+        foreach (Renderer rend in jefe.GetComponentsInChildren<Renderer>())
+        {
+            if (rend is ParticleSystemRenderer) continue;
+            limites.Encapsulate(rend.bounds);
+        }
+
+        Vector3 centro = limites.center;
+        float radio = Mathf.Max(limites.extents.x, limites.extents.z) + 3f;
+
+        Vector3 plano = new Vector3(punto.x - centro.x, 0f, punto.z - centro.z);
+        if (plano.magnitude >= radio) return punto;
+
+        Vector3 mejor = punto;
+        float mejorDistancia = float.MaxValue;
+        bool encontrado = false;
+
+        // Se prueban varios radios y direcciones; gana el candidato válido más cercano al punto original
+        for (float r = radio; r <= radio + 6f && !encontrado; r += 1.5f)
+        {
+            for (int i = 0; i < 24; i++)
+            {
+                float angulo = i * Mathf.PI * 2f / 24f;
+                Vector3 candidato = new Vector3(centro.x + Mathf.Cos(angulo) * r, punto.y, centro.z + Mathf.Sin(angulo) * r);
+
+                if (!NavMesh.SamplePosition(candidato, out NavMeshHit navegable, 2f, NavMesh.AllAreas)) continue;
+                if (new Vector2(navegable.position.x - centro.x, navegable.position.z - centro.z).magnitude < radio - 0.5f) continue;
+
+                float d = (navegable.position - punto).sqrMagnitude;
+                if (d < mejorDistancia)
+                {
+                    mejorDistancia = d;
+                    mejor = navegable.position;
+                    encontrado = true;
+                }
+            }
+        }
+        return mejor;
     }
 
     // Cada enemigo tiene el pivote a una altura distinta (el cactus flota 0,5 m sobre el suelo, el hongo está en el suelo),

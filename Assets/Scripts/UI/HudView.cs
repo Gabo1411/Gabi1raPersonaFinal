@@ -54,6 +54,7 @@ public class HudView : MonoBehaviour
         hud.BuildDash();
         hud.BuildAmmo();
         hud.BuildScore();
+        Crosshair.Create(canvas.transform, player);
         return hud;
     }
 

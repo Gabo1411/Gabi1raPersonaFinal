@@ -88,19 +88,36 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         if (health <= 0 || jugador == null || jugador.IsDead) return;
         if (IsEmerging) return;
 
-        if (agent != null && agent.enabled && Time.time >= nextRepathTime)
+        float distancia = Vector3.Distance(transform.position, jugador.transform.position);
+
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
         {
-            nextRepathTime = Time.time + RepathInterval;
-            agent.SetDestination(jugador.transform.position);
+            // Al llegar al alcance de ataque se planta: así no empuja al jugador ni lo saca de la sala
+            bool inRange = distancia <= distanciaAtaque * 0.85f;
+            agent.isStopped = inRange;
+            if (inRange) FaceTarget(jugador.transform.position);
+
+            if (!inRange && Time.time >= nextRepathTime)
+            {
+                nextRepathTime = Time.time + RepathInterval;
+                agent.SetDestination(jugador.transform.position);
+            }
         }
 
         OnTick();
 
-        float distancia = Vector3.Distance(transform.position, jugador.transform.position);
         if (distancia <= distanciaAtaque && Time.time >= tiempoSiguienteAtaque)
         {
             Atacar();
         }
+    }
+
+    void FaceTarget(Vector3 target)
+    {
+        Vector3 flat = target - transform.position;
+        flat.y = 0f;
+        if (flat.sqrMagnitude < 0.01f) return;
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(flat), 360f * Time.deltaTime);
     }
 
     void Atacar()

@@ -58,7 +58,10 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         return list;
     }
 
-    public float CurrentSpeed => speed + BuffAmount(BuffType.Velocidad) + BuffAmount(BuffType.VelocidadMejorada);
+    // El arma lo reduce mientras apunta en modo francotirador
+    [HideInInspector] public float aimSlow = 1f;
+
+    public float CurrentSpeed => (speed + BuffAmount(BuffType.Velocidad) + BuffAmount(BuffType.VelocidadMejorada)) * aimSlow;
     public bool IsDead => Health <= 0;
     public bool IsDashing => isDashing;
 
@@ -107,6 +110,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }
+
 
     // La cámara se inclina al mirar arriba o abajo y arrastra a todo el jugador. Para el suelo y el movimiento solo
     // cuenta el giro horizontal, así se puede saltar y avanzar a toda velocidad mirando en cualquier dirección.
