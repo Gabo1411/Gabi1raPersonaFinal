@@ -87,43 +87,47 @@ public class TrapDoorDemo : MonoBehaviour
 
             if (puntoAparicionJefe == null) return;
 
-            CharacterController cc = other.GetComponent<CharacterController>();
-
-            if (cc != null)
-            {
-                cc.enabled = false;
-                other.transform.position = puntoAparicionJefe.position;
-                cc.enabled = true;
-            }
-            else
-            {
-                other.transform.position = puntoAparicionJefe.position;
-            }
-
-            // --- NUEVO: DESPERTAR LA ARENA DEL JEFE ---
-
-            // 1. Encendemos al jefe principal
-            if (jefePrincipal != null)
-            {
-                jefePrincipal.SetActive(true);
-            }
-
-            // 2. Buscamos todos los spawners de la arena y los activamos
-            BossArenaSpawner[] spawners = FindObjectsByType<BossArenaSpawner>(FindObjectsSortMode.None);
-            foreach (BossArenaSpawner spawner in spawners)
-            {
-                spawner.ActivarSpawner();
-            }
-
-            Debug.Log("¡Warp a la zona del jefe exitoso! Arena activada.");
-
-            GameManager manager = GameManager.Instance;
-            if (manager != null)
-            {
-                manager.OcultarPuntaje();
-            }
-
-            Debug.Log("¡Warp a la zona del jefe exitoso! Arena activada y puntos ocultos.");
+            WarpPlayer(other.transform);
+            ActivarArena();
         }
     }
+
+    // Mueve al jugador al punto de aparición de la arena del jefe
+    public void WarpPlayer(Transform player)
+    {
+        if (puntoAparicionJefe == null) return;
+
+        CharacterController cc = player.GetComponent<CharacterController>();
+        if (cc != null)
+        {
+            cc.enabled = false;
+            player.position = puntoAparicionJefe.position;
+            cc.enabled = true;
+        }
+        else
+        {
+            player.position = puntoAparicionJefe.position;
+        }
+    }
+
+    // Despierta al jefe y a los spawners de la arena y oculta la puntuación
+    public void ActivarArena()
+    {
+        yaUsada = true;
+        ObjectiveMarker.Hide();
+
+        if (jefePrincipal != null) jefePrincipal.SetActive(true);
+
+        foreach (BossArenaSpawner spawner in FindObjectsByType<BossArenaSpawner>(FindObjectsSortMode.None))
+        {
+            spawner.ActivarSpawner();
+        }
+
+        GameManager manager = GameManager.Instance;
+        if (manager != null) manager.OcultarPuntaje();
+
+        Debug.Log("¡Arena del jefe activada!");
+    }
+
+    public bool ArenaActive => jefePrincipal != null && jefePrincipal.activeSelf;
 }

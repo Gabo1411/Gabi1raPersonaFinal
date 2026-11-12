@@ -21,6 +21,7 @@ public class BulletDamage : MonoBehaviour
     void OnEnable()
     {
         timeLeft = lifetime;
+        BulletCollisionFilter.Register(gameObject, false);
     }
 
     void Update()

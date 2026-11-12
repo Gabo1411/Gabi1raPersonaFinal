@@ -161,11 +161,14 @@ public class SniperShot : MonoBehaviour
         get
         {
             if (solidMaterial != null) return solidMaterial;
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-            if (shader == null) shader = Shader.Find("Unlit/Color");
-            solidMaterial = new Material(shader);
-            solidMaterial.color = new Color(1f, 0.95f, 0.45f);
-            if (solidMaterial.HasProperty("_BaseColor")) solidMaterial.SetColor("_BaseColor", new Color(1f, 0.95f, 0.45f));
+            // Lit con emisión: es un shader que siempre está en la build
+            solidMaterial = new Material(RuntimeShaders.Find("Universal Render Pipeline/Lit", "Universal Render Pipeline/Unlit"));
+            RuntimeShaders.SetColor(solidMaterial, new Color(1f, 0.95f, 0.45f));
+            if (solidMaterial.HasProperty("_EmissionColor"))
+            {
+                solidMaterial.EnableKeyword("_EMISSION");
+                solidMaterial.SetColor("_EmissionColor", new Color(1f, 0.85f, 0.15f) * 4f);
+            }
             return solidMaterial;
         }
     }
@@ -175,8 +178,8 @@ public class SniperShot : MonoBehaviour
         get
         {
             if (glowMaterial != null) return glowMaterial;
-            glowMaterial = new Material(Shader.Find("Legacy Shaders/Particles/Additive"));
-            glowMaterial.SetColor("_TintColor", new Color(1f, 0.85f, 0.2f, 0.6f));
+            glowMaterial = new Material(RuntimeShaders.Find("Legacy Shaders/Particles/Additive", "Sprites/Default"));
+            RuntimeShaders.SetColor(glowMaterial, new Color(1f, 0.85f, 0.2f, 0.6f));
             return glowMaterial;
         }
     }

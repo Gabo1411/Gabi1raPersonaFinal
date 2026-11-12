@@ -14,6 +14,9 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 {
     public static readonly List<EnemyBase> Active = new List<EnemyBase>();
 
+    // Consola debug: congela la IA de todos los enemigos
+    public static bool Frozen;
+
     public static int AliveCount
     {
         get
@@ -87,6 +90,12 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     {
         if (health <= 0 || jugador == null || jugador.IsDead) return;
         if (IsEmerging) return;
+
+        if (Frozen)
+        {
+            if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
+            return;
+        }
 
         float distancia = Vector3.Distance(transform.position, jugador.transform.position);
 

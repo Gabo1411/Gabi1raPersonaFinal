@@ -19,12 +19,14 @@ public class ControlsPanel : MonoBehaviour
 
     static readonly (string[] keys, string action)[] Rows =
     {
-        (new[] { "W", "A", "S", "D" }, "Moverse"),
+        (new[] { "W", "A", "S", "D" }, "Moverse (también con las flechas)"),
         (new[] { "Mouse" }, "Apuntar"),
         (new[] { "Click izquierdo" }, "Disparar (mantén para fuego automático)"),
+        (new[] { "Click derecho" }, "Mantener: francotirador (dispara el cristal)"),
         (new[] { "R" }, "Recargar"),
         (new[] { "Shift" }, "Dash"),
         (new[] { "Espacio" }, "Saltar"),
+        (new[] { "Ctrl", "C" }, "Agacharse (mantén; vas más lento)"),
         (new[] { "F" }, "Linterna"),
         (new[] { "Esc" }, "Pausa")
     };
@@ -89,16 +91,16 @@ public class ControlsPanel : MonoBehaviour
     {
         RectTransform row = UITheme.NewRect("Fila " + action, parent);
         UITheme.HLayout(row.gameObject, 24f, new RectOffset(0, 0, 0, 0), TextAnchor.MiddleLeft);
-        UITheme.Size(row.gameObject, height: 62f);
+        UITheme.Size(row.gameObject, height: 54f);
 
         RectTransform keyCell = UITheme.NewRect("Teclas", row);
         UITheme.HLayout(keyCell.gameObject, 8f, new RectOffset(0, 0, 0, 0), TextAnchor.MiddleLeft);
-        UITheme.Size(keyCell.gameObject, 360f, 62f);
+        UITheme.Size(keyCell.gameObject, 360f, 54f);
 
         foreach (string key in keys) KeyCap(keyCell, key);
 
         TMP_Text description = UITheme.Label(row, "Descripcion", action, 28f, UITheme.TextMain, TextAlignmentOptions.MidlineLeft, FontStyles.Normal, false);
-        UITheme.Size(description.gameObject, height: 62f, flexibleWidth: 1f);
+        UITheme.Size(description.gameObject, height: 54f, flexibleWidth: 1f);
     }
 
     static void KeyCap(Transform parent, string text)
@@ -106,9 +108,9 @@ public class ControlsPanel : MonoBehaviour
         Image cap = UITheme.Box(parent, "Tecla " + text, new Color(0.34f, 0.27f, 0.2f), true);
         cap.sprite = UISprites.Slab;
         UITheme.HLayout(cap.gameObject, 0f, new RectOffset(20, 20, 6, 6), TextAnchor.MiddleCenter);
-        UITheme.Size(cap.gameObject, height: 54f);
+        UITheme.Size(cap.gameObject, height: 48f);
 
         TMP_Text label = UITheme.Label(cap.transform, "Texto", text, 27f, new Color(1f, 0.93f, 0.78f), TextAlignmentOptions.Center, FontStyles.Bold);
-        UITheme.Size(label.gameObject, height: 42f);
+        UITheme.Size(label.gameObject, height: 38f);
     }
 }

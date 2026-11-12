@@ -15,6 +15,7 @@ public class HitFlash : MonoBehaviour
         public Color baseColor;
         public bool hadEmission;
         public Color baseEmission;
+        public bool skipEmission;   // materiales con mapa de emisión propio (los brillos del modelo): no se tocan
     }
 
     private readonly List<Slot> slots = new List<Slot>();
@@ -45,6 +46,8 @@ public class HitFlash : MonoBehaviour
                 if (material.HasProperty("_BaseColor")) slot.colorId = Shader.PropertyToID("_BaseColor");
                 else if (material.HasProperty("_Color")) slot.colorId = Shader.PropertyToID("_Color");
                 if (slot.colorId >= 0) slot.baseColor = material.GetColor(slot.colorId);
+
+                slot.skipEmission = material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null;
 
                 if (material.HasProperty("_EmissionColor"))
                 {
@@ -79,9 +82,11 @@ public class HitFlash : MonoBehaviour
             if (slot.material == null) continue;
 
             if (slot.colorId >= 0)
-                slot.material.SetColor(slot.colorId, Color.Lerp(slot.baseColor, FlashColor, 0.35f * k));
+                slot.material.SetColor(slot.colorId, Color.Lerp(slot.baseColor, FlashColor, (slot.skipEmission ? 0.5f : 0.35f) * k));
 
-            if (slot.material.HasProperty("_EmissionColor"))
+            // Con mapa de emisión propio (p. ej. los brillos celestes del jefe) solo se tiñe el color base:
+            // encender la emisión mostraría ese mapa en lugar del rojo suave
+            if (!slot.skipEmission && slot.material.HasProperty("_EmissionColor"))
             {
                 if (k > 0f)
                 {

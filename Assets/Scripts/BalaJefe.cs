@@ -19,6 +19,7 @@ public class BalaJefe : MonoBehaviour
     void OnEnable()
     {
         timeLeft = tiempoDeVida;
+        BulletCollisionFilter.Register(gameObject, true);
 
         // Al reutilizar la bala desde el pool no debe conservar la velocidad de su uso anterior
         if (body != null)

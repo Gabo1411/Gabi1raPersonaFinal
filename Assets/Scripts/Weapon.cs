@@ -25,6 +25,9 @@ public class Weapon : MonoBehaviour
     [Range(0.4f, 1f)]
     public float sniperZoom = 0.72f;
 
+    // Consola debug: munición infinita
+    [HideInInspector] public bool infiniteAmmo;
+
     // Precisión
     private float spreadIntensity = 0.1f;
 
@@ -110,6 +113,16 @@ public class Weapon : MonoBehaviour
         // Sin disparar ni recargar con el juego en pausa o terminado
         if (Time.timeScale == 0f || Mouse.current == null || Keyboard.current == null) return;
 
+        if (DebugConsole.IsOpen)
+        {
+            // Con la consola abierta no se dispara ni se apunta
+            isFiring = false;
+            sniperActive = false;
+            if (player != null) player.aimSlow = 1f;
+            UpdateZoom();
+            return;
+        }
+
         // Modo francotirador: mantener clic derecho (no con Disparo Continuo ni recargando)
         sniperActive = Mouse.current.rightButton.isPressed && !continuo && !isReloading && !(player != null && player.IsDead);
         if (player != null) player.aimSlow = sniperActive ? sniperMoveFactor : 1f;
@@ -120,7 +133,7 @@ public class Weapon : MonoBehaviour
 
         if (sniperActive)
         {
-            if (readytoFire && isFiring && bulletsLeft > 0) FireSniper();
+            if (readytoFire && isFiring && (bulletsLeft > 0 || infiniteAmmo)) FireSniper();
             else if (isFiring && bulletsLeft <= 0 && Time.time >= nextEmptyClick)
             {
                 nextEmptyClick = Time.time + 0.35f;
@@ -128,7 +141,7 @@ public class Weapon : MonoBehaviour
                 if (weaponAnimator != null) weaponAnimator.OnDryFire();
             }
         }
-        else if (readytoFire && isFiring && (continuo || (!isReloading && bulletsLeft > 0)))
+        else if (readytoFire && isFiring && (continuo || (!isReloading && (bulletsLeft > 0 || infiniteAmmo))))
         {
             FireWeapon();
         }
@@ -145,6 +158,38 @@ public class Weapon : MonoBehaviour
             Reload();
         }
     }
+
+    // ---------- Consola debug ----------
+
+    public void DebugSetAmmo(int amount)
+    {
+        bulletsLeft = Mathf.Clamp(amount, 0, magazineSize);
+        UpdateAmmoUI();
+    }
+
+    public void DebugSetAmmoUi() => UpdateAmmoUI();
+
+    public void DebugReload()
+    {
+        if (!isReloading && bulletsLeft < magazineSize) Reload();
+    }
+
+    // El cristal vuelve a estar listo al instante
+    public void DebugRechargeSniper()
+    {
+        CancelInvoke(nameof(ResetShot));
+        sniperShotTime = -10f;
+        readytoFire = true;
+    }
+
+    public void DebugSetFov(float fov)
+    {
+        baseFov = Mathf.Clamp(fov, 20f, 140f);
+        if (mainCamera == null) mainCamera = Camera.main;
+        if (mainCamera != null && !sniperActive) mainCamera.fieldOfView = baseFov;
+    }
+
+    public float BaseFov => baseFov;
 
     // Para el arma y la interfaz
     public bool SniperActive => sniperActive;
@@ -173,7 +218,7 @@ public class Weapon : MonoBehaviour
     private void FireSniper()
     {
         int spent = Mathf.Min(sniperBulletCost, bulletsLeft);
-        bulletsLeft -= spent;
+        if (!infiniteAmmo) bulletsLeft -= spent;
         UpdateAmmoUI();
 
         float multiplier = sniperDamageMultiplier * spent / Mathf.Max(1, sniperBulletCost);
@@ -205,7 +250,7 @@ public class Weapon : MonoBehaviour
     {
         if (AmmoManager.instance != null && AmmoManager.instance.ammoDisplay != null)
         {
-            string loaded = DisparoContinuoActivo ? "INF" : bulletsLeft.ToString();
+            string loaded = DisparoContinuoActivo || infiniteAmmo ? "INF" : bulletsLeft.ToString();
             AmmoManager.instance.ammoDisplay.text = loaded + " / " + magazineSize;
         }
     }
@@ -230,7 +275,7 @@ public class Weapon : MonoBehaviour
     {
         bool continuo = DisparoContinuoActivo;
 
-        if (!continuo)
+        if (!continuo && !infiniteAmmo)
         {
             bulletsLeft--;
             UpdateAmmoUI();

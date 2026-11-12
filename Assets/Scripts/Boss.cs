@@ -14,6 +14,7 @@ public class Boss : MonoBehaviour, IDamageable
     public GameObject balaPrefab;
     public Transform puntoDisparo;
     private Transform player;
+    private PlayerMovement playerMovement;
     private Animator animator;
 
     [Header("Fuentes de Sonido (AudioSources)")]
@@ -35,9 +36,48 @@ public class Boss : MonoBehaviour, IDamageable
     public int balasRafaga = 15;
     public float cadenciaRafaga = 0.33f;
     public float duracionMetralladora = 5.0f;
-    public int seriesDeTriangulos = 6;
-    public float pausaEntreSeries = 0.8f;
-    public float separacionTriangulo = 1.2f;
+    [Tooltip("Ráfaga de misiles: cuántos salen por cada lado (en total el doble), el intervalo entre parejas y el daño de cada uno.")]
+    public int misilesPorLado = 4;
+    public float intervaloMisiles = 0.3f;
+    public int danioMisil = 15;
+
+    // Para los efectos del escenario (el foco de la arena reacciona a la vida del jefe)
+    // ---------- Consola debug ----------
+    [HideInInspector] public bool frozen;
+    public int CurrentHealth => currentHealth;
+    public bool IsFrozen => frozen;
+
+    public void DebugSetHealth(int value)
+    {
+        if (estaMuerto) return;
+        currentHealth = Mathf.Clamp(value, 0, maxHealth);
+        ActualizarUI();
+        if (currentHealth <= 0) Die();
+    }
+
+    // Lanza un ataque concreto ahora mismo (con el gesto de burla previo). Devuelve false si el nombre no existe.
+    public bool DebugAttack(string name)
+    {
+        if (estaMuerto) return false;
+        switch (name)
+        {
+            case "bullets": case "rafaga": case "ráfaga": StartCoroutine(DebugAttackRoutine(AtaqueRafaga())); return true;
+            case "gatling": case "metralladora": StartCoroutine(DebugAttackRoutine(AtaqueMetralladora())); return true;
+            case "missiles": case "misiles": StartCoroutine(DebugAttackRoutine(AtaqueMisiles())); return true;
+        }
+        return false;
+    }
+
+    IEnumerator DebugAttackRoutine(IEnumerator attack)
+    {
+        if (animator != null) animator.SetTrigger("Taunt");
+        Sfx.Play(fuenteTaunt, clipTaunt);
+        yield return new WaitForSeconds(esperaAperturaBoca);
+        yield return attack;
+    }
+
+    public float HealthFraction => maxHealth > 0 ? Mathf.Clamp01((float)currentHealth / maxHealth) : 1f;
+    public bool IsDead => estaMuerto;
 
     void Start()
     {
@@ -45,7 +85,7 @@ public class Boss : MonoBehaviour, IDamageable
         animator = GetComponentInChildren<Animator>();
         ActualizarUI();
 
-        PlayerMovement playerMovement = FindFirstObjectByType<PlayerMovement>();
+        playerMovement = FindFirstObjectByType<PlayerMovement>();
         if (playerMovement != null) player = playerMovement.transform;
 
         StartCoroutine(CicloDeIA());
@@ -67,6 +107,7 @@ public class Boss : MonoBehaviour, IDamageable
         while (!estaMuerto)
         {
             yield return new WaitForSeconds(tiempoEntreCiclos);
+            while (frozen && !estaMuerto) yield return null;
             if (estaMuerto) yield break;
 
             if (animator != null) animator.SetTrigger("Taunt");
@@ -78,7 +119,7 @@ public class Boss : MonoBehaviour, IDamageable
             int eleccion = Random.Range(0, 3);
             if (eleccion == 0) yield return AtaqueRafaga();
             else if (eleccion == 1) yield return AtaqueMetralladora();
-            else yield return AtaqueTriangulo();
+            else yield return AtaqueMisiles();
         }
     }
 
@@ -101,18 +142,20 @@ public class Boss : MonoBehaviour, IDamageable
         }
     }
 
-    IEnumerator AtaqueTriangulo()
+    // Ráfaga de misiles: salen por parejas, uno de cada costado del jefe. Cada uno sube, fija la posición del jugador
+    // en ese momento y cae sobre ella en línea recta (con un anillo en el suelo que marca el punto).
+    IEnumerator AtaqueMisiles()
     {
-        for (int i = 0; i < seriesDeTriangulos; i++)
+        for (int i = 0; i < misilesPorLado; i++)
         {
-            Vector3 up = puntoDisparo.up * separacionTriangulo;
-            Vector3 right = puntoDisparo.right * separacionTriangulo;
+            if (estaMuerto || puntoDisparo == null) yield break;
 
-            InstanciarBala(puntoDisparo.position + up, false);
-            InstanciarBala(puntoDisparo.position - up / 2f - right, false);
-            InstanciarBala(puntoDisparo.position - up / 2f + right, false);
-
-            yield return new WaitForSeconds(pausaEntreSeries);
+            Sfx.Play(fuenteDisparo, clipDisparo);
+            Vector3 lado = transform.right;
+            Vector3 origen = puntoDisparo.position;
+            BossMissile.Launch(origen + lado * 1.8f, player, danioMisil, balaPrefab, lado);
+            BossMissile.Launch(origen - lado * 1.8f, player, danioMisil, balaPrefab, -lado);
+            yield return new WaitForSeconds(intervaloMisiles);
         }
     }
 
@@ -123,7 +166,7 @@ public class Boss : MonoBehaviour, IDamageable
         Sfx.Play(fuenteDisparo, clipDisparo);
 
         GameObject bala = PrefabPool.Get(balaPrefab, pos, puntoDisparo.rotation);
-        if (seguir && player != null) bala.transform.LookAt(player.position + Vector3.up * 1.2f);
+        if (seguir && player != null) bala.transform.LookAt(playerMovement != null ? playerMovement.AimPoint : player.position + Vector3.up * 1.2f);
     }
 
     public void TakeDamage(int damage)

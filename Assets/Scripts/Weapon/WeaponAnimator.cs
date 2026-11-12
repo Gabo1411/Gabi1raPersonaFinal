@@ -73,6 +73,13 @@ public class WeaponAnimator : MonoBehaviour
         body = GetComponentInParent<CharacterController>();
         block = new MaterialPropertyBlock();
 
+        // El arma no proyecta sombras (la linterna sale de la cámara y dibujaba la silueta de la pistola en el suelo)
+        foreach (Renderer rend in GetComponentsInChildren<Renderer>(true))
+        {
+            if (rend is ParticleSystemRenderer || rend is TrailRenderer || rend is LineRenderer) continue;
+            rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
         if (visual == null) visual = transform;
         basePosition = visual.localPosition;
         baseRotation = visual.localRotation;
@@ -379,7 +386,7 @@ public class WeaponAnimator : MonoBehaviour
             // Cada pieza recibe dos rayos para que la corriente se note más
             arcTargets = new[] { ringA, ringB, pendant, visual, ringA, ringB, pendant, visual };
             arcs = new LineRenderer[arcTargets.Length];
-            Material material = new Material(Shader.Find("Sprites/Default"));
+            Material material = new Material(RuntimeShaders.Find("Sprites/Default"));
             for (int i = 0; i < arcs.Length; i++)
             {
                 GameObject go = new GameObject("ArcoElectrico");

@@ -97,7 +97,7 @@ public class GameManager : MonoBehaviour
         if (!isPaused && !gameEnded) elapsedTime += Time.deltaTime;
 
         bool escape = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
-        if (!escape || gameEnded || OptionsPanel.BlocksInput || ControlsPanel.BlocksInput) return;
+        if (!escape || gameEnded || OptionsPanel.BlocksInput || ControlsPanel.BlocksInput || DebugConsole.BlocksInput) return;
 
         if (isPaused) ResumeGame();
         else PauseGame();
@@ -162,6 +162,15 @@ public class GameManager : MonoBehaviour
 
         if (currentScore >= targetScore) OnTargetScoreReached();
     }
+
+    // Fija la puntuación (consola debug); si alcanza el objetivo se dispara el cambio de fase normal
+    public void DebugSetScore(int score)
+    {
+        if (score > currentScore) AddScore(score - currentScore);
+        else currentScore = Mathf.Max(0, score);
+    }
+
+    public bool ScoreReached => scoreReached;
 
     public void OcultarPuntaje()
     {

@@ -33,6 +33,23 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     [Tooltip("Multiplicador del cooldown del dash mientras dura la Poción de Velocidad II (0.5 = la mitad).")]
     [SerializeField] private float cooldownDashMejorado = 0.5f;
 
+    [Header("Agacharse (mantener Ctrl o C)")]
+    [Tooltip("Altura de la cápsula del jugador al agacharse (de pie mide la altura original del CharacterController).")]
+    [SerializeField] private float crouchHeight = 2.2f;
+    [Tooltip("Multiplicador de la velocidad al agacharse (0.5 = la mitad).")]
+    [SerializeField, Range(0.2f, 1f)] private float crouchSpeedFactor = 0.5f;
+    [Tooltip("Cuánto baja la cámara además de lo que baja el cuerpo (el arma baja con el cuerpo, así que mejor dejarlo en 0).")]
+    [SerializeField] private float crouchCameraDrop = 0f;
+
+    // Controlados por la consola debug
+    [HideInInspector] public bool godMode, noclip, fly;
+    [HideInInspector] public float debugSpeedMultiplier = 1f;
+    [HideInInspector] public int debugBonusDamage;
+
+    private float standHeight, crouchAmount;
+    private Transform cameraTransform;
+    private Vector3 cameraBaseLocal;
+
     Vector3 velocity;
     bool isGrounded;
     private bool isDashing;
@@ -61,7 +78,16 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     // El arma lo reduce mientras apunta en modo francotirador
     [HideInInspector] public float aimSlow = 1f;
 
-    public float CurrentSpeed => (speed + BuffAmount(BuffType.Velocidad) + BuffAmount(BuffType.VelocidadMejorada)) * aimSlow;
+    public float CurrentSpeed => (speed + BuffAmount(BuffType.Velocidad) + BuffAmount(BuffType.VelocidadMejorada)) * aimSlow * Mathf.Lerp(1f, crouchSpeedFactor, crouchAmount) * debugSpeedMultiplier;
+    public bool IsCrouching => crouchAmount > 0.5f;
+
+    // Ajustes de agacharse (consola debug)
+    public float CrouchHeight { get => crouchHeight; set => crouchHeight = Mathf.Clamp(value, 0.8f, standHeight > 0f ? standHeight : 3.75f); }
+    public float CrouchSpeedFactor { get => crouchSpeedFactor; set => crouchSpeedFactor = Mathf.Clamp(value, 0.1f, 1f); }
+    public float StandHeight => standHeight;
+
+    // Punto al que apuntan los ataques del jefe: el centro del cuerpo, esté de pie o agachado
+    public Vector3 AimPoint => controller != null ? controller.bounds.center : transform.position;
     public bool IsDead => Health <= 0;
     public bool IsDashing => isDashing;
 
@@ -81,16 +107,36 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         controller = GetComponent<CharacterController>();
         Health = maxHealth;
 
+        standHeight = controller.height;
+        Camera cam = GetComponentInChildren<Camera>();
+        if (cam != null)
+        {
+            cameraTransform = cam.transform;
+            cameraBaseLocal = cameraTransform.localPosition;
+        }
+
         if (dashTrail != null) dashTrail.emitting = false;
     }
 
     void Update()
     {
         UpdateBuffs();
+        UpdateCrouch();
+
+        // Si ya no está en noclip, la cápsula vuelve a activarse
+        if (!noclip && controller != null && !controller.enabled && !isDashing) controller.enabled = true;
 
         if (isDashing || Keyboard.current == null) return;
 
-        if (Keyboard.current.leftShiftKey.wasPressedThisFrame && Time.time >= lastDashTime + CurrentDashCooldown)
+        if (noclip || fly)
+        {
+            FlyUpdate();
+            return;
+        }
+
+        bool blocked = DebugConsole.IsOpen;
+
+        if (!blocked && Keyboard.current.leftShiftKey.wasPressedThisFrame && Time.time >= lastDashTime + CurrentDashCooldown)
         {
             StartCoroutine(DashCoroutine());
         }
@@ -102,7 +148,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         Vector3 move = Flatten(transform.right) * input.x + Flatten(transform.forward) * input.y;
         controller.Move(move * CurrentSpeed * Time.deltaTime);
 
-        if (Keyboard.current.spaceKey.wasPressedThisFrame && isGrounded)
+        if (!blocked && Keyboard.current.spaceKey.wasPressedThisFrame && isGrounded && crouchAmount < 0.3f)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
@@ -112,11 +158,93 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     }
 
 
+    // ---------- Consola debug ----------
+
+    public void DebugTeleport(Vector3 position)
+    {
+        bool wasEnabled = controller != null && controller.enabled;
+        if (controller != null) controller.enabled = false;
+        transform.position = position;
+        velocity = Vector3.zero;
+        if (controller != null) controller.enabled = wasEnabled || !noclip;
+    }
+
+    public void DebugClearBuffs()
+    {
+        foreach (Buff buff in buffs) buff.remaining = 0f;
+        regenBuffer = 0f;
+    }
+
+    // Vuelo libre (consola debug): sigue la dirección de la cámara; Espacio sube y Ctrl baja.
+    // Con noclip además atraviesa paredes y suelo.
+    void FlyUpdate()
+    {
+        if (controller == null) return;
+
+        velocity = Vector3.zero;
+        controller.enabled = !noclip;
+
+        Vector2 input = ReadMoveInput();
+        Vector3 direction = transform.right * input.x + transform.forward * input.y;
+
+        Keyboard kb = Keyboard.current;
+        if (!DebugConsole.IsOpen)
+        {
+            if (kb.spaceKey.isPressed) direction += Vector3.up;
+            if (kb.leftCtrlKey.isPressed) direction += Vector3.down;
+        }
+
+        Vector3 move = direction * (CurrentSpeed * 1.6f * Time.deltaTime);
+        if (noclip) transform.position += move;
+        else controller.Move(move);
+    }
+
     // La cámara se inclina al mirar arriba o abajo y arrastra a todo el jugador. Para el suelo y el movimiento solo
     // cuenta el giro horizontal, así se puede saltar y avanzar a toda velocidad mirando en cualquier dirección.
     Quaternion YawRotation => Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
 
-    Vector3 GroundCheckPosition => transform.position + YawRotation * groundCheck.localPosition;
+    // Al agacharse la cápsula se encoge alrededor de su centro, así que el punto de suelo sube con ella
+    Vector3 GroundCheckPosition => transform.position + YawRotation * groundCheck.localPosition + Vector3.up * ((standHeight - controller.height) * 0.5f);
+
+    // Agacharse: la cápsula y la cámara bajan suavemente. Al soltar solo se levanta si hay espacio sobre la cabeza.
+    void UpdateCrouch()
+    {
+        if (controller == null) return;
+
+        Keyboard kb = Keyboard.current;
+        bool wants = kb != null && (kb.leftCtrlKey.isPressed || kb.cKey.isPressed) && !IsDead && !DebugConsole.IsOpen && !noclip && !fly;
+        if (!wants && crouchAmount > 0f && !HasHeadroom()) wants = true;
+
+        crouchAmount = Mathf.MoveTowards(crouchAmount, wants ? 1f : 0f, Time.deltaTime * 6f);
+
+        float height = Mathf.Lerp(standHeight, crouchHeight, Mathf.SmoothStep(0f, 1f, crouchAmount));
+        float delta = height - controller.height;
+        if (Mathf.Abs(delta) > 0.0001f)
+        {
+            // Los pies se quedan en el mismo sitio: al crecer se sube primero el centro, al encoger se baja después
+            if (delta > 0f) { controller.Move(Vector3.up * (delta * 0.5f)); controller.height = height; }
+            else { controller.height = height; controller.Move(Vector3.up * (delta * 0.5f)); }
+        }
+
+        if (cameraTransform != null)
+        {
+            cameraTransform.localPosition = cameraBaseLocal + Vector3.down * (crouchCameraDrop * Mathf.SmoothStep(0f, 1f, crouchAmount));
+        }
+    }
+
+    bool HasHeadroom()
+    {
+        float radius = controller.radius * 0.9f;
+        float feetY = transform.position.y - controller.height * 0.5f;
+        Vector3 head = new Vector3(transform.position.x, feetY + standHeight - radius, transform.position.z);
+
+        foreach (Collider other in Physics.OverlapSphere(head, radius, ~0, QueryTriggerInteraction.Ignore))
+        {
+            if (other.transform.IsChildOf(transform) || other.transform == transform) continue;
+            return false;
+        }
+        return true;
+    }
 
     static Vector3 Flatten(Vector3 direction)
     {
@@ -127,6 +255,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     static Vector2 ReadMoveInput()
     {
         Keyboard kb = Keyboard.current;
+        if (DebugConsole.IsOpen) return Vector2.zero;
         float x = (kb.dKey.isPressed || kb.rightArrowKey.isPressed ? 1f : 0f) - (kb.aKey.isPressed || kb.leftArrowKey.isPressed ? 1f : 0f);
         float z = (kb.wKey.isPressed || kb.upArrowKey.isPressed ? 1f : 0f) - (kb.sKey.isPressed || kb.downArrowKey.isPressed ? 1f : 0f);
         Vector2 v = new Vector2(x, z);
@@ -171,7 +300,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     public void TakeDamage(int amount)
     {
-        if (IsDead || amount <= 0) return;
+        if (IsDead || amount <= 0 || godMode) return;
 
         Health = Mathf.Max(0, Health - amount);
         DamageFeedback.Show(Mathf.Clamp01(amount / (float)maxHealth * 2f));
@@ -220,7 +349,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             if (buff.Active) buff.remaining = Mathf.Max(0f, buff.remaining - Time.deltaTime);
         }
 
-        bonusDanio = Mathf.RoundToInt(BuffAmount(BuffType.Danio) + BuffAmount(BuffType.DanioMejorado));
+        bonusDanio = Mathf.RoundToInt(BuffAmount(BuffType.Danio) + BuffAmount(BuffType.DanioMejorado)) + debugBonusDamage;
 
         // Regeneración: cura gradualmente (amount = puntos de vida por segundo)
         Buff regen = buffs[(int)BuffType.Regeneracion];

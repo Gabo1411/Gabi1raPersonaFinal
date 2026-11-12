@@ -33,7 +33,7 @@ public class MouseMovement : MonoBehaviour
     void Update()
     {
         // No girar la cámara con el juego en pausa o en pantallas de victoria/derrota
-        if (Time.timeScale == 0f || Mouse.current == null) return;
+        if (Time.timeScale == 0f || Mouse.current == null || DebugConsole.IsOpen) return;
 
         Vector2 delta = Mouse.current.delta.ReadValue() * (mouseSensitivity * DegreesPerPixelFactor * userSensitivity);
 
