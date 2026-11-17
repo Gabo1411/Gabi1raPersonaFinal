@@ -70,14 +70,13 @@ public class SniperShot : MonoBehaviour
         crystal.localScale = Vector3.one * 0.22f * pulse;
 
         float step = speed * dt;
-        RaycastHit[] hits = Physics.SphereCastAll(transform.position, radius, direction, step, ~0, QueryTriggerInteraction.Collide);
-        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+        int count = PhysicsBuffers.SphereCastSorted(transform.position, radius, direction, step, QueryTriggerInteraction.Collide);
 
-        foreach (RaycastHit hit in hits)
+        for (int i = 0; i < count; i++)
         {
+            RaycastHit hit = PhysicsBuffers.Hits[i];
             Collider other = hit.collider;
-            if (other.CompareTag("Player") || other.GetComponentInParent<PlayerMovement>() != null) continue;
-            if (other.GetComponentInParent<BalaJefe>() != null || other.GetComponentInParent<BulletDamage>() != null) continue;
+            if (ColliderInfo.IsPlayerOrBullet(other)) continue;
 
             bool damageable = other.CompareTag("Enemy") || other.CompareTag("Boss");
             IDamageable target = damageable ? other.GetComponentInParent<IDamageable>() : null;
@@ -160,6 +159,10 @@ public class SniperShot : MonoBehaviour
     {
         get
         {
+            if (solidMaterial != null) return solidMaterial;
+
+            // Material guardado en el proyecto (Resources/Materials): así su variante emisiva de URP Lit entra en la build
+            solidMaterial = Resources.Load<Material>("Materials/SniperCrystal");
             if (solidMaterial != null) return solidMaterial;
             // Lit con emisión: es un shader que siempre está en la build
             solidMaterial = new Material(RuntimeShaders.Find("Universal Render Pipeline/Lit", "Universal Render Pipeline/Unlit"));

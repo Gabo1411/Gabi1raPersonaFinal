@@ -72,6 +72,7 @@ public class ArenaChandelier : MonoBehaviour
             flicker.amplitude = 0.07f;
             flicker.jitter = 0f;
             flicker.halo = false;
+            flicker.disableShadows = false;
             flicker.embers = false;
         }
 

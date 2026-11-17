@@ -81,8 +81,10 @@ public class BossMissile : MonoBehaviour
 
         // La altura máxima respeta el techo: sube como mucho hasta un poco por debajo de él
         float height = RiseHeight;
-        foreach (RaycastHit hit in Physics.RaycastAll(transform.position, Vector3.up, RiseHeight + 4f, ~0, QueryTriggerInteraction.Ignore))
+        int ceilingHits = PhysicsBuffers.RaycastSorted(transform.position, Vector3.up, RiseHeight + 4f, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < ceilingHits; i++)
         {
+            RaycastHit hit = PhysicsBuffers.Hits[i];
             if (IsIgnored(hit.collider)) continue;
             height = Mathf.Min(height, hit.distance - CeilingMargin);
         }
@@ -158,17 +160,18 @@ public class BossMissile : MonoBehaviour
         float remaining = Vector3.Distance(transform.position, aimPoint);
         if (remaining <= distance) { Explode(aimPoint); return; }
 
-        RaycastHit[] hits = Physics.SphereCastAll(transform.position, 0.35f, direction, distance, ~0, QueryTriggerInteraction.Collide);
-        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-        foreach (RaycastHit hit in hits)
+        int count = PhysicsBuffers.SphereCastSorted(transform.position, 0.35f, direction, distance, QueryTriggerInteraction.Collide);
+        for (int i = 0; i < count; i++)
         {
+            RaycastHit hit = PhysicsBuffers.Hits[i];
             Collider other = hit.collider;
             if (IsIgnored(other)) continue;
-            if (other.isTrigger && other.GetComponentInParent<PlayerMovement>() == null) continue;
+            bool isPlayer = ColliderInfo.IsPlayer(other);
+            if (other.isTrigger && !isPlayer) continue;
 
             // Las superficies que quedan a su espalda (el techo del que acaba de salir) no cuentan como impacto
             if (hit.distance > 0f && Vector3.Dot(hit.normal, direction) > 0.1f) continue;
-            if (hit.distance <= 0f && phaseTime < 0.3f && other.GetComponentInParent<PlayerMovement>() == null) continue;
+            if (hit.distance <= 0f && phaseTime < 0.3f && !isPlayer) continue;
 
             Explode(transform.position + direction * Mathf.Max(0f, hit.distance));
             return;
@@ -183,9 +186,10 @@ public class BossMissile : MonoBehaviour
     // Durante la subida solo importa no atravesar techos: si choca, empieza la picada antes
     bool HitSolid(float distance, Vector3 dir)
     {
-        foreach (RaycastHit hit in Physics.SphereCastAll(transform.position, 0.3f, dir, distance, ~0, QueryTriggerInteraction.Ignore))
+        int count = PhysicsBuffers.SphereCastSorted(transform.position, 0.3f, dir, distance, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < count; i++)
         {
-            if (!IsIgnored(hit.collider)) return true;
+            if (!IsIgnored(PhysicsBuffers.Hits[i].collider)) return true;
         }
         return false;
     }
@@ -193,20 +197,8 @@ public class BossMissile : MonoBehaviour
     // Centro del cuerpo del jugador (de pie o agachado)
     Vector3 BodyCenter => movement != null ? movement.AimPoint : player.position + Vector3.up * 0.9f;
 
-    static bool IsIgnored(Collider other)
-    {
-        if (other.CompareTag("Boss") || other.CompareTag("Enemy")) return true;
-        if (other.GetComponentInParent<BossMissile>() != null) return true;
-        if (other.GetComponentInParent<BalaJefe>() != null || other.GetComponentInParent<BulletDamage>() != null) return true;
-        if (other.GetComponentInParent<Boss>() != null || other.GetComponentInParent<EnemyBase>() != null) return true;
-
-        // Elementos colgantes sobre el jefe (el candelabro con sus cadenas): no son suelo ni pared
-        for (Transform t = other.transform; t != null; t = t.parent)
-        {
-            if (t.name == "Chandelier" || t.name == "CandelabroColgante") return true;
-        }
-        return false;
-    }
+    // Qué atraviesa un misil: jefe, enemigos, balas, otros misiles y el candelabro colgante (clasificación en caché)
+    static bool IsIgnored(Collider other) => ColliderInfo.MissileIgnores(other);
 
     // El anillo sigue al jugador pegado al suelo hasta que el misil lo fija; entonces se queda quieto y parpadea cada vez más rápido
     void UpdateMarker(float dt)
@@ -228,15 +220,14 @@ public class BossMissile : MonoBehaviour
 
     static Vector3 GroundUnder(Vector3 position)
     {
-        RaycastHit[] hits = Physics.RaycastAll(position + Vector3.up * 1.5f, Vector3.down, 12f, ~0, QueryTriggerInteraction.Ignore);
-        float best = float.MaxValue;
-        Vector3 point = position;
-        foreach (RaycastHit hit in hits)
+        int count = PhysicsBuffers.RaycastSorted(position + Vector3.up * 1.5f, Vector3.down, 12f, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < count; i++)
         {
-            if (hit.collider.GetComponentInParent<PlayerMovement>() != null) continue;
-            if (hit.distance < best) { best = hit.distance; point = hit.point; }
+            RaycastHit hit = PhysicsBuffers.Hits[i];
+            if (ColliderInfo.IsPlayer(hit.collider)) continue;
+            return hit.point;     // están ordenados: el primero que no es el jugador es el suelo
         }
-        return point;
+        return position;
     }
 
     void Explode(Vector3 point)

@@ -2,7 +2,11 @@ using UnityEditor;
 using UnityEngine;
 
 // Los shaders que el código busca por nombre (Shader.Find) no entran en la build si ningún material los usa,
-// y entonces los efectos se ven rosas. Este script los añade a la lista de shaders siempre incluidos.
+// y entonces los efectos se ven rosas. Este script añade a 'Always Included Shaders' solo los shaders pequeños.
+//
+// Los shaders de URP (Lit, Unlit...) NO deben estar en esa lista: ahí Unity incluye todas sus variantes
+// (más de dos millones para Lit) y la build falla. Los materiales que los necesitan están guardados como assets
+// (por ejemplo Resources/Materials/SniperCrystal.mat), así Unity incluye justo las variantes que se usan.
 [InitializeOnLoad]
 public static class EnsureRuntimeShaders
 {
@@ -11,8 +15,13 @@ public static class EnsureRuntimeShaders
         "Legacy Shaders/Particles/Additive",
         "Legacy Shaders/Particles/Alpha Blended",
         "Sprites/Default",
-        "Universal Render Pipeline/Unlit",
+    };
+
+    // Estos se quitan de la lista si una versión anterior de este script los había añadido
+    static readonly string[] Forbidden =
+    {
         "Universal Render Pipeline/Lit",
+        "Universal Render Pipeline/Unlit",
         "Universal Render Pipeline/Particles/Unlit",
     };
 
@@ -36,6 +45,25 @@ public static class EnsureRuntimeShaders
         if (list == null) return;
 
         bool changed = false;
+
+        // Quitar los shaders que hacen fallar la build
+        foreach (string name in Forbidden)
+        {
+            Shader shader = Shader.Find(name);
+            if (shader == null) continue;
+
+            for (int i = list.arraySize - 1; i >= 0; i--)
+            {
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue != shader) continue;
+
+                // En un array de objetos, la primera llamada deja el elemento en null y la segunda lo elimina
+                list.DeleteArrayElementAtIndex(i);
+                if (i < list.arraySize && list.GetArrayElementAtIndex(i).objectReferenceValue == shader) list.DeleteArrayElementAtIndex(i);
+                changed = true;
+            }
+        }
+
+        // Añadir los pequeños
         foreach (string name in Names)
         {
             Shader shader = Shader.Find(name);
@@ -59,7 +87,7 @@ public static class EnsureRuntimeShaders
             EditorUtility.SetDirty(assets[0]);
             // Los ajustes del proyecto no se guardan con SaveAssets: hay que serializarlos explícitamente
             UnityEditorInternal.InternalEditorUtility.SaveToSerializedFileAndForget(new Object[] { assets[0] }, "ProjectSettings/GraphicsSettings.asset", true);
-            Debug.Log("Shaders añadidos a 'Always Included Shaders' para que los efectos se vean en la build.");
+            Debug.Log("Always Included Shaders actualizado (sin los shaders de URP).");
         }
     }
 }

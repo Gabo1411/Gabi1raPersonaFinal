@@ -9,6 +9,9 @@ public class BulletDamage : MonoBehaviour
     public GameObject impactEffect;
 
     private int baseDamage;
+
+    // El jugador se busca una sola vez (antes se buscaba en cada disparo)
+    private static PlayerMovement cachedPlayer;
     private float timeLeft;
     private Rigidbody body;
 
@@ -34,7 +37,8 @@ public class BulletDamage : MonoBehaviour
     public void Launch(Vector3 direction, float speed, float damageMultiplier = 1f)
     {
         // El bonus de la poción se aplica al disparar, no al instanciar el prefab.
-        PlayerMovement player = FindFirstObjectByType<PlayerMovement>();
+        if (cachedPlayer == null) cachedPlayer = FindFirstObjectByType<PlayerMovement>();
+        PlayerMovement player = cachedPlayer;
         float total = (baseDamage + (player != null ? player.bonusDanio : 0)) * damageMultiplier;
 
         // Redondeo probabilístico: el daño medio coincide con el valor exacto aunque sea fraccionario

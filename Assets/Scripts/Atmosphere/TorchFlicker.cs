@@ -12,6 +12,10 @@ public class TorchFlicker : MonoBehaviour
     [Tooltip("Desplazamiento aleatorio de la luz en metros (hace bailar las sombras). 0 para luces que se mueven solas.")]
     public float jitter = 0.035f;
 
+    [Header("Rendimiento")]
+    [Tooltip("Quita las sombras de esta luz: cada luz puntual con sombras dibuja la escena hasta 6 veces más. Una antorcha pequeña casi no las necesita.")]
+    public bool disableShadows = true;
+
     [Header("Efectos")]
     public bool halo = true;
     public float haloSize = 2.4f;
@@ -29,6 +33,8 @@ public class TorchFlicker : MonoBehaviour
     {
         torchLight = GetComponent<Light>();
         if (torchLight == null) { enabled = false; return; }
+
+        if (disableShadows && torchLight.type == LightType.Point) torchLight.shadows = LightShadows.None;
 
         baseIntensity = torchLight.intensity;
         baseColor = torchLight.color;
