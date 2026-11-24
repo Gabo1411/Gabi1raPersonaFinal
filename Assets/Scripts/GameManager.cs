@@ -31,6 +31,12 @@ public class GameManager : MonoBehaviour
     [Header("Sonido")]
     [Tooltip("Se reproduce al eliminar a un enemigo menor (no al jefe).")]
     public AudioClip killSound;
+    [Tooltip("Segundos máximos entre dos muertes para que cuenten como racha y suba el tono.")]
+    public float killStreakWindow = 0.5f;
+    [Tooltip("Cuánto sube el tono por cada muerte seguida, en semitonos.")]
+    public float semitonesPerKill = 2f;
+    [Tooltip("Subida máxima del tono, en semitonos (12 = una octava).")]
+    public float maxSemitones = 12f;
 
     [Header("Elementos del Nivel")]
     public TrapDoorDemo escotillaNivel;
@@ -41,7 +47,9 @@ public class GameManager : MonoBehaviour
     private bool isPaused = false;
     private bool scoreVisible = true;
     private float elapsedTime = 0f;
-    private AudioSource uiAudio;
+    private AudioSource[] killSources;
+    private int killSourceIndex, killStreak;
+    private float lastKillTime = -100f;
     private GameMenus menus;
 
     public bool GameEnded => gameEnded;
@@ -107,13 +115,27 @@ public class GameManager : MonoBehaviour
     {
         if (killSound == null) return;
 
-        if (uiAudio == null)
+        // Racha: cada muerte dentro de la ventana de tiempo tras la anterior sube el tono
+        float now = Time.time;
+        killStreak = (now - lastKillTime <= killStreakWindow) ? killStreak + 1 : 0;
+        lastKillTime = now;
+
+        // Varias fuentes en rotación: así un sonido que aún suena conserva su propio tono
+        if (killSources == null)
         {
-            uiAudio = gameObject.AddComponent<AudioSource>();
-            uiAudio.playOnAwake = false;
-            uiAudio.spatialBlend = 0f; // 2D: suena igual sin importar dónde muera el enemigo
+            killSources = new AudioSource[3];
+            for (int i = 0; i < killSources.Length; i++)
+            {
+                killSources[i] = gameObject.AddComponent<AudioSource>();
+                killSources[i].playOnAwake = false;
+                killSources[i].spatialBlend = 0f; // 2D: suena igual sin importar dónde muera el enemigo
+            }
         }
-        uiAudio.PlayOneShot(killSound, Sfx.Volume);
+
+        AudioSource source = killSources[killSourceIndex];
+        killSourceIndex = (killSourceIndex + 1) % killSources.Length;
+        source.pitch = Mathf.Pow(2f, Mathf.Min(killStreak * semitonesPerKill, maxSemitones) / 12f);
+        source.PlayOneShot(killSound, Sfx.Volume);
     }
 
     // ---------- Pausa y menús ----------

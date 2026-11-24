@@ -117,6 +117,7 @@ public class TrapDoorDemo : MonoBehaviour
         ObjectiveMarker.Hide();
 
         if (jefePrincipal != null) jefePrincipal.SetActive(true);
+        ArenaAtmosphere.WakeUp();
 
         foreach (BossArenaSpawner spawner in FindObjectsByType<BossArenaSpawner>(FindObjectsSortMode.None))
         {
